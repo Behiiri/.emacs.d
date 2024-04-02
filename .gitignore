@@ -51,3 +51,6 @@ flycheck_*.el
 /ido.last
 /recentf
 /var/prescient-save.el
+
+# other
+/projects
