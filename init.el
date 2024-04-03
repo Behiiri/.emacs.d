@@ -384,43 +384,41 @@ ALIST is the option channel for display actions (see `display-buffer')."
         ((string-match "[.]cpp" buffer-file-name) (behiri-source-format)))
 
   (defun open-corresponding-file ()
-  "Open the corresponding header/source file for C/C++."
-  (interactive)
-  (let* ((base-file-name (file-name-sans-extension buffer-file-name))
-         (corresponding-file-name
-          (cond ((string-match "\\.c" buffer-file-name) (concat base-file-name ".h"))
-                ((string-match "\\.h" buffer-file-name) (concat base-file-name ".c"))
-                ((string-match "\\.cpp" buffer-file-name) (concat base-file-name ".h"))
-                ((string-match "\\.h" buffer-file-name) (concat base-file-name ".cpp"))
-                (t nil))))
-    (if corresponding-file-name
-        (find-file corresponding-file-name)
-      (error "Unable to find a corresponding file"))))
+    "Open the corresponding header/source file for C/C++."
+    (interactive)
+    (let* ((base-file-name (file-name-sans-extension buffer-file-name))
+           (corresponding-file-name
+            (cond ((string-match "\\.c" buffer-file-name) (concat base-file-name ".h"))
+                  ((string-match "\\.h" buffer-file-name) (concat base-file-name ".c"))
+                  ((string-match "\\.cpp" buffer-file-name) (concat base-file-name ".h"))
+                  ((string-match "\\.h" buffer-file-name) (concat base-file-name ".cpp"))
+                  (t nil))))
+      (if corresponding-file-name
+          (find-file corresponding-file-name)
+        (error "Unable to find a corresponding file"))))
 
-(defun open-corresponding-file-other-window ()
-  "Find the file that corresponds to this one in another window."
-  (interactive)
-  (find-file-other-window buffer-file-name)
-  (open-corresponding-file)
-  (other-window -1))
+  (defun open-corresponding-file-other-window ()
+    "Find the file that corresponds to this one in another window."
+    (interactive)
+    (find-file-other-window buffer-file-name)
+    (open-corresponding-file)
+    (other-window -1))
 
   (define-key c++-mode-map [f12] 'open-corresponding-file)
   (define-key c++-mode-map [M-f12] 'open-corresponding-file-other-window)
-  (define-key c++-mode-map "\ec" 'open-corresponding-file)
-  (define-key c++-mode-map "\eC" 'open-corresponding-file-other-window)
-  (define-key c++-mode-map "\es" 'behiri-save-buffer)
-  (define-key c++-mode-map "\t" 'dabbrev-expand)
+  (define-key c++-mode-map (kbd "M-e") 'open-corresponding-file)
+  (define-key c++-mode-map (kbd "M-E") 'open-corresponding-file-other-window)
+  (define-key c++-mode-map (kbd "M-s") 'behiri-save-buffer)
+  (define-key c++-mode-map (kbd "TAB") 'dabbrev-expand)
   (define-key c++-mode-map [S-tab] 'indent-for-tab-command)
-  (define-key c++-mode-map "\C-y" 'indent-for-tab-command)
-  (define-key c++-mode-map [C-tab] 'indent-region)
-  (define-key c++-mode-map "  " 'indent-region)
-  (define-key c++-mode-map "\ej" 'imenu)
-  (define-key c++-mode-map "\e." 'c-fill-paragraph)
-  (define-key c++-mode-map "\e/" 'c-mark-function)
-  (define-key c++-mode-map "\e " 'set-mark-command)
-  (define-key c++-mode-map "\eq" 'append-as-kill)
-  (define-key c++-mode-map "\ea" 'yank)
-  (define-key c++-mode-map "\ez" 'kill-region)
+  (define-key c++-mode-map (kbd "C-y") 'indent-for-tab-command)
+  (define-key c++-mode-map (kbd "C-<tab>") 'indent-region)
+  (define-key c++-mode-map (kbd "M-j") 'imenu)
+  (define-key c++-mode-map (kbd "M-.") 'c-fill-paragraph)
+  (define-key c++-mode-map (kbd "M-/") 'c-mark-function)
+  (define-key c++-mode-map (kbd "M-q") 'append-as-kill)
+  (define-key c++-mode-map (kbd "M-a") 'yank)
+  (define-key c++-mode-map (kbd "M-z") 'kill-region)
 
   ;; devenv.com error parsing
   (add-to-list 'compilation-error-regexp-alist 'behiri-devenv)
