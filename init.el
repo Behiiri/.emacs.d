@@ -23,6 +23,9 @@
 
 (set-default-coding-systems 'utf-8)
 
+(setq completion-ignored-extensions
+      (append completion-ignored-extensions
+              '(".meta" ".cs.meta")))
 
 (defun exec-bat-recursively (dir bat-file)
   "Find and run specified BAT file recursively up to the root directory."
@@ -70,6 +73,24 @@
   (interactive)
   (when (y-or-n-p "Are you sure you want to execute debug.bat?")
     (exec-bat-recursively (file-name-directory buffer-file-name) "debug.bat")))
+
+(defun behiri-find-file-other-window (&optional initial-input initial-directory)
+  "Opens a file in other window using counsel.
+   When INITIAL-INPUT is non-nil, use it in the minibuffer during completion."
+  (interactive)
+  (declare (lexical-binding t)) ; Add lexical-binding declaration
+  (let ((default-directory (or initial-directory default-directory))
+        (action (lambda (file)
+                  (if (> (length (window-list)) 1)
+                      (progn
+                        (other-window 1)
+                        (counsel-find-file-action file))
+                    (progn
+                      (select-window (split-window-right))
+                      (counsel-find-file-action file))))))
+    (counsel--find-file-1 "Find file other Window by behiri: " initial-input
+                          action
+                          'counsel-find-file)))
 
 ;; scroll config
 (setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ;; one line at a time
@@ -498,20 +519,20 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (setq compilation-directory-locked nil)
 (setq shift-select-mode nil)
 (setq enable-local-variables nil)
-(setq split-height-threshold nil)
-(setq split-width-threshold 80)
+(setq split-height-threshold 80)
+(setq split-width-threshold 160)
 
 (split-window-horizontally)
 (global-hl-line-mode -1)
 (scroll-bar-mode -1)
 
-(add-to-list 'default-frame-alist '(font . "Liberation Mono-11.5"))
+(add-to-list 'default-frame-alist '(font . "Liberation Mono-11"))
 (add-to-list 'default-frame-alist '(background-color . "#001C14"))
 (add-to-list 'default-frame-alist '(foreground-color . "#EEEE88"))
 (add-to-list 'default-frame-alist '(hl-line-background-color . "#052215"))
 (add-to-list 'default-frame-alist '(cursor-color . "firebrick"))
 
-(set-face-attribute 'default t :font "Liberation Mono-11.5")
+(set-face-attribute 'default t :font "Liberation Mono-11")
 (set-face-attribute 'font-lock-builtin-face nil :foreground "#DAB98F")
 (set-face-attribute 'font-lock-comment-face nil :foreground "gray50")
 (set-face-attribute 'font-lock-constant-face nil :foreground "olive drab")
@@ -522,7 +543,7 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (set-face-attribute 'font-lock-type-face nil :foreground "burlywood3")
 (set-face-attribute 'font-lock-variable-name-face nil :foreground "burlywood3")
 (set-face-attribute 'region nil :background "#123")
-(set-face-attribute 'ivy-current-match nil :background "#142")
+(set-face-attribute 'ivy-current-match nil :background "#124" :foreground 'unspecified)
 (set-face-background 'hl-line "#052215");
 
 (defun set-font-size ()
@@ -552,7 +573,7 @@ ALIST is the option channel for display actions (see `display-buffer')."
               (behiri-window-setup-hook))))
 
 (global-set-key (kbd "M-f")        'find-file)
-(global-set-key (kbd "M-F")        'ido-find-file-other-window)
+(global-set-key (kbd "M-F")        'behiri-find-file-other-window)
 (global-set-key (kbd "M-b")        'ido-switch-buffer)
 (global-set-key (kbd "M-B")        'ido-switch-buffer-other-window)
 (global-set-key (kbd "M-t")        'load-todo)
@@ -623,7 +644,6 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (global-set-key (kbd "C-3")        'split-window-right)
 (global-set-key (kbd "C-4")        'next-error)
 (global-set-key (kbd "C-<f11>")    'toggle-frame-fullscreen)
-
 
 ;; Make gc pauses faster by decreasing the threshold.
 (setq gc-cons-threshold (* 2 1000 1000))
