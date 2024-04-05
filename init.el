@@ -25,7 +25,7 @@
 
 (setq completion-ignored-extensions
       (append completion-ignored-extensions
-              '(".meta" ".cs.meta")))
+              '(".meta" ".cs.meta" ".csproj" ".sln")))
 
 (defun exec-bat-recursively (dir bat-file)
   "Find and run specified BAT file recursively up to the root directory."
@@ -91,6 +91,25 @@
     (counsel--find-file-1 "Find file other Window by behiri: " initial-input
                           action
                           'counsel-find-file)))
+
+(defun swap-window-positions ()
+   "*Swap the positions of this window and the next one."
+   (interactive)
+   (other-window 1)
+   (let ((other-window (next-window (selected-window) 'no-minibuf)))
+     (let ((other-window-buffer (window-buffer other-window))
+           (other-window-hscroll (window-hscroll other-window))
+           (other-window-point (window-point other-window))
+           (other-window-start (window-start other-window)))
+       (set-window-buffer other-window (current-buffer))
+       (set-window-hscroll other-window (window-hscroll (selected-window)))
+       (set-window-point other-window (point))
+       (set-window-start other-window (window-start (selected-window)))
+       (set-window-buffer (selected-window) other-window-buffer)
+       (set-window-hscroll (selected-window) other-window-hscroll)
+       (set-window-point (selected-window) other-window-point)
+       (set-window-start (selected-window) other-window-start))
+     (select-window other-window)))
 
 ;; scroll config
 (setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ;; one line at a time
@@ -184,17 +203,11 @@ ALIST is the option channel for display actions (see `display-buffer')."
    ("<tab>" . ivy-alt-done)
    ("<C-tab>" . ivy-partial-or-done)
    ("C-l"   . ivy-alt-done)
-   ("C-i"   . ivy-immediate-done)
-   ("C-k"   . ivy-previous-line)
-   ("C-j"   . ivy-next-line)
-   :map ivy-switch-buffer-map
-   ("C-k"   . ivy-previous-line)
-   ("C-j"   . ivy-next-line))
+   ("C-i"   . ivy-immediate-done))
   :config
   (ivy-mode 1)
   (setq ivy-extra-directories nil)
-  (setq ivy-use-selectable-prompt t)
-  )
+  (setq ivy-use-selectable-prompt t))
 
 (use-package ivy-prescient
   :ensure t
@@ -245,19 +258,24 @@ ALIST is the option channel for display actions (see `display-buffer')."
 
 ;; no screwing with my middle mouse button
 (global-unset-key [mouse-2])
-
-;; Bright-red TODOs
-(setq fixme-modes '(c++-mode c-mode emacs-lisp-mode))
+ 
+;; Bright-red TODOs, Dark Green NOTEs, and yellow @mentions
+(setq fixme-modes '(C++-mode C-mode csharp-mode emacs-lisp-mode))
 (make-face 'font-lock-fixme-face)
 (make-face 'font-lock-note-face)
+(make-face 'font-lock-mention-face)
+
 (mapc (lambda (mode)
         (font-lock-add-keywords
          mode
          '(("\\<\\(TODO\\)" 1 'font-lock-fixme-face t)
-           ("\\<\\(NOTE\\)" 1 'font-lock-note-face t))))
+           ("\\<\\(NOTE\\)" 1 'font-lock-note-face t)
+           ("\\<\\(@[[:alnum:]_]+\\)" 1 'font-lock-mention-face t))))
       fixme-modes)
+
 (modify-face 'font-lock-fixme-face "Red" nil nil t nil t nil nil)
 (modify-face 'font-lock-note-face "Dark Green" nil nil t nil t nil nil)
+(modify-face 'font-lock-mention-face "Yellow" nil nil t nil t nil nil)
 
 ;; Accepted file extensions and their appropriate modes
 (setq auto-mode-alist
@@ -464,6 +482,12 @@ ALIST is the option channel for display actions (see `display-buffer')."
   (append-next-kill) 
   (copy-region-as-kill (mark) (point)))
 
+(defun kill-current-buffer ()
+  "Kill the current buffer without any prompts."
+  (interactive)
+  (kill-buffer (current-buffer)))
+
+
 (defun behiri-replace-in-region (old-word new-word)
   "Perform a replace-string in the current region."
   (interactive "sReplace: \nsReplace: %s  With: ")
@@ -515,12 +539,11 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (setq set-mark-command-repeat-pop t)
 (setq mark-ring-max 32)
 (setq compilation-directory-locked nil)
-(setq shift-select-mode nil)
+(setq shift-select-mode t)
 (setq enable-local-variables nil)
 (setq split-height-threshold 80)
-(setq split-width-threshold 160)
+(setq split-width-threshold 1) ;; nil = split to top and down |  1 = split to right and left
 
-(split-window-horizontally)
 (global-hl-line-mode -1)
 (scroll-bar-mode -1)
 
@@ -556,6 +579,10 @@ ALIST is the option channel for display actions (see `display-buffer')."
   (interactive)
   (menu-bar-mode -1)
   (setq inhibit-startup-message t)
+  (split-window-horizontally)
+  (other-window 1)
+  (find-file behiri-todo-file)
+  (other-window 1)
   (toggle-scroll-bar -1) 
   (tool-bar-mode -1)
   (delete-selection-mode 1))
@@ -577,6 +604,7 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (global-set-key (kbd "M-t")        'load-todo)
 (global-set-key (kbd "M-T")        'load-log)
 (global-set-key (kbd "M-w")        'other-window)
+(global-set-key (kbd "M-2")        'swap-window-positions)
 (global-set-key (kbd "C-<right>")  'forward-word)
 (global-set-key (kbd "C-<left>")   'backward-word)
 (global-set-key (kbd "C-<up>")     'previous-blank-line)
@@ -614,7 +642,7 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (global-set-key (kbd "M-]")        'end-kbd-macro)
 (global-set-key (kbd "M-'")        'call-last-kbd-macro)
 (global-set-key (kbd "M-r")        'revert-buffer)
-(global-set-key (kbd "M-k")        'kill-this-buffer)
+(global-set-key (kbd "M-k")        'kill-current-buffer)
 (global-set-key (kbd "M-s")        'behiri-save-buffer) ;; save-buffer
 (global-set-key (kbd "<tab>")      'dabbrev-expand)
 (global-set-key (kbd "S-<tab>")    'indent-for-tab-command)
