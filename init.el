@@ -23,6 +23,65 @@
 
 (set-default-coding-systems 'utf-8)
 
+(use-package compile
+  :init
+  (progn
+    (setq compilation-scroll-output t)
+    (setq compilation-always-kill t)))
+
+(use-package counsel
+  :ensure t
+  :diminish
+  :bind
+  ("C-x C-f" . counsel-find-file)
+  :custom
+  (counsel-find-file-ignore-regexp "\\(?:^[#.]\\)\\|\\(?:\\.\\(cs\\)?meta\\)")
+  :init
+  (counsel-mode 1))
+
+(setq ido-ignore-extensions t)
+(add-to-list 'completion-ignored-extensions ".meta")
+(add-to-list 'completion-ignored-extensions ".cs.meta")
+
+(use-package diminish
+  :ensure t)
+
+(use-package ivy
+  :ensure t
+  :diminish
+  :bind
+  (("C-s" . swiper)
+   ("C-c v" . ivy-push-view)
+   ("C-c V" . ivy-pop-view)
+   ("C-c g" . counsel-git)
+   ("C-c j" . counsel-git-grep)
+   ("C-c L" . counsel-git-log)
+   ("C-c C-r" . ivy-resume)
+   ("C-c b" . counsel-bookmark)
+   ("C-c d" . counsel-descbinds)
+   ("C-c t" . counsel-load-theme)
+   :map ivy-minibuffer-map
+   ("<tab>" . ivy-alt-done)
+   ("<C-tab>" . ivy-partial-or-done)
+   ("C-l"   . ivy-alt-done)
+   ("C-i"   . ivy-immediate-done))
+  :config
+  (ivy-mode 1)
+  (setq ivy-extra-directories nil)
+  (setq ivy-use-selectable-prompt t))
+
+(use-package ivy-prescient
+  :ensure t
+  :after counsel
+  :config
+  (ivy-prescient-mode 1)
+  (prescient-persist-mode 1)
+  (setq prescient-sort-length-enable nil)
+  ;; (setq prescient-filter-method '(literal regexp fuzzy))
+  (setq ivy-prescient-enable-filtering nil)
+  (setq ivy-prescient-retain-classic-highlighting t))
+
+
 (setq completion-ignored-extensions
       (append completion-ignored-extensions
               '(".meta" ".cs.meta" ".csproj" ".sln")))
@@ -111,6 +170,76 @@
        (set-window-start (selected-window) other-window-start))
      (select-window other-window)))
 
+(defvar behiri-change-buffer-keymap (make-sparse-keymap)
+  "Keymap for behiri-change-buffer")
+
+(define-key behiri-change-buffer-keymap (kbd "M-k") #'behiri-change-buffer-kill)
+
+(defun behiri-filter-buffers ()
+  "Filter buffers, ignoring temporary buffers."
+  (cl-remove-if
+   (lambda (buf)
+     (or (string-prefix-p "*" (buffer-name buf))
+         (and (not (buffer-file-name buf))
+              (buffer-live-p buf))))
+   (buffer-list)))
+
+
+(defun behiri-change-buffer ()
+  "Switch to a buffer, ignoring temporary buffers."
+  (interactive)
+  (let ((buffers (behiri-filter-buffers)))
+    (ivy-read "Change buffer: "
+              (mapcar #'buffer-name buffers)
+              :preselect (buffer-name (current-buffer))
+              :keymap behiri-change-buffer-keymap
+              :action (lambda (buffer)
+                        (let ((selected-buffer (get-buffer buffer)))
+                          (switch-to-buffer selected-buffer))))))
+
+(defun behiri-change-buffer-other-window ()
+  "Switch to a buffer on other window, ignoring temporary buffers."
+  (interactive)
+  (let ((buffers (behiri-filter-buffers)))
+    (ivy-read "Change buffer on other window: "
+              (mapcar #'buffer-name buffers)
+              :preselect (buffer-name (current-buffer))
+              :keymap behiri-change-buffer-keymap
+              :action (lambda (buffer)
+                        (let ((selected-buffer (get-buffer buffer)))
+                          (switch-to-buffer-other-window selected-buffer))))))
+
+(defun behiri-change-buffer-kill ()
+  "Kill the current buffer in `behiri-change-buffer'."
+  (interactive)
+  (let ((selected-buffer (ivy-state-current ivy-last)))
+    (ivy--kill-buffer-or-virtual selected-buffer)
+    (unless (buffer-live-p (ivy-state-buffer ivy-last))
+      (setf (ivy-state-buffer ivy-last)
+            (with-ivy-window (current-buffer))))
+    (setf (ivy-state-preselect ivy-last) ivy--index)
+    (setq ivy--old-re nil)
+    (setq ivy--all-candidates (delete selected-buffer ivy--all-candidates))
+    (ivy--exhibit)))
+
+(defun behiri-save-all-buffers ()
+  "Save all open files, ignoring temporary buffers."
+  (interactive)
+  (let ((saved-buffer-count 0))  ; Initialize the counter
+    (dolist (buffer (buffer-list))
+      (with-current-buffer buffer
+        (when (and (buffer-file-name)  ; Check if buffer is associated with a file
+                   (not (string-prefix-p " *" (buffer-name))))  ; Ignore temporary buffers starting with " *"
+          (let ((file-name (buffer-file-name)))
+            (when file-name
+              ;; (message "Saving file: %s..." file-name)
+              (save-buffer)
+              (setq saved-buffer-count (1+ saved-buffer-count))
+              ;; (sit-for 0.1)
+              )
+            (message nil)))))  ; Clear the message after each iteration
+    (message "Saved %d buffer(s)." saved-buffer-count)))  ; Display the count
+
 ;; scroll config
 (setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ;; one line at a time
 (setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
@@ -161,64 +290,6 @@ ALIST is the option channel for display actions (see `display-buffer')."
 
 ;; Set the backup directory
 (setq backup-directory-alist `(("." . "~/.emacs-backups")))
-
-(use-package compile
-  :init
-  (progn
-    (setq compilation-scroll-output t)
-    (setq compilation-always-kill t)))
-
-(use-package counsel
-  :ensure t
-  :diminish
-  :bind
-  ("C-x C-f" . counsel-find-file)
-  :custom
-  (counsel-find-file-ignore-regexp "\\(?:^[#.]\\)\\|\\(?:\\.\\(cs\\)?meta\\)")
-  :init
-  (counsel-mode 1))
-
-(setq ido-ignore-extensions t)
-(add-to-list 'completion-ignored-extensions ".meta")
-(add-to-list 'completion-ignored-extensions ".cs.meta")
-
-(use-package diminish
-  :ensure t)
-
-(use-package ivy
-  :ensure t
-  :diminish
-  :bind
-  (("C-s" . swiper)
-   ("C-c v" . ivy-push-view)
-   ("C-c V" . ivy-pop-view)
-   ("C-c g" . counsel-git)
-   ("C-c j" . counsel-git-grep)
-   ("C-c L" . counsel-git-log)
-   ("C-c C-r" . ivy-resume)
-   ("C-c b" . counsel-bookmark)
-   ("C-c d" . counsel-descbinds)
-   ("C-c t" . counsel-load-theme)
-   :map ivy-minibuffer-map
-   ("<tab>" . ivy-alt-done)
-   ("<C-tab>" . ivy-partial-or-done)
-   ("C-l"   . ivy-alt-done)
-   ("C-i"   . ivy-immediate-done))
-  :config
-  (ivy-mode 1)
-  (setq ivy-extra-directories nil)
-  (setq ivy-use-selectable-prompt t))
-
-(use-package ivy-prescient
-  :ensure t
-  :after counsel
-  :config
-  (ivy-prescient-mode 1)
-  (prescient-persist-mode 1)
-  (setq prescient-sort-length-enable nil)
-  ;; (setq prescient-filter-method '(literal regexp fuzzy))
-  (setq ivy-prescient-enable-filtering nil)
-  (setq ivy-prescient-retain-classic-highlighting t))
 
 ;; Additional Ivy config options
 (setq ivy-use-virtual-buffers t) ; Enable recent files in switch buffer command
@@ -601,6 +672,8 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (global-set-key (kbd "M-F")        'behiri-find-file-other-window)
 (global-set-key (kbd "M-b")        'ido-switch-buffer)
 (global-set-key (kbd "M-B")        'ido-switch-buffer-other-window)
+(global-set-key (kbd "M-c")        'behiri-change-buffer)
+(global-set-key (kbd "M-C")        'behiri-change-buffer-other-window) ;; capitalize-word
 (global-set-key (kbd "M-t")        'load-todo)
 (global-set-key (kbd "M-T")        'load-log)
 (global-set-key (kbd "M-w")        'other-window)
@@ -617,7 +690,6 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (global-set-key (kbd "C-<prior>")  'scroll-other-window-down)
 (global-set-key (kbd "M-v")        'pop-to-mark-command)
 (global-set-key (kbd "M-q")        'append-as-kill)
-(global-set-key (kbd "M-a")        'yank)
 (global-set-key (kbd "M-z")        'suspend-frame)
 (global-set-key (kbd "M-<up>")     'previous-blank-line)
 (global-set-key (kbd "M-<down>")   'next-blank-line)
@@ -628,8 +700,6 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (global-set-key (kbd "M-N")        'previous-error)
 (global-set-key (kbd "M-g")        'goto-line)
 (global-set-key (kbd "M-j")        'imenu)
-;; (global-Set-key (kbd "C-c")         nil)
-;; (Global-set-key (kbd "C-e")        'rotate-yank-pointer)
 (global-set-key (kbd "M-u")        'undo)
 (global-set-key (kbd "M-6")        'upcase-word)
 (global-set-key (kbd "M-^")        'capitalize-word)
@@ -644,6 +714,7 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (global-set-key (kbd "M-r")        'revert-buffer)
 (global-set-key (kbd "M-k")        'kill-current-buffer)
 (global-set-key (kbd "M-s")        'behiri-save-buffer) ;; save-buffer
+(global-set-key (kbd "M-S")        'behiri-save-all-buffers)
 (global-set-key (kbd "<tab>")      'dabbrev-expand)
 (global-set-key (kbd "S-<tab>")    'indent-for-tab-command)
 (global-set-key (kbd "<backtab>")  'indent-for-tab-command)
@@ -670,6 +741,9 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (global-set-key (kbd "C-3")        'split-window-right)
 (global-set-key (kbd "C-4")        'next-error)
 (global-set-key (kbd "C-<f11>")    'toggle-frame-fullscreen)
+(global-set-key (kbd "<insert>")   'yank)
+(global-set-key (kbd "S-<insert>") 'counsel-yank-pop)
+(global-set-key (kbd "C-<insert>") 'overwrite-mode)
 
 ;; Make gc pauses faster by decreasing the threshold.
 (setq gc-cons-threshold (* 2 1000 1000))
