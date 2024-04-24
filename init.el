@@ -61,10 +61,15 @@
    ("C-c d" . counsel-descbinds)
    ("C-c t" . counsel-load-theme)
    :map ivy-minibuffer-map
-   ("<tab>" . ivy-alt-done)
+   ("<tab>"   . ivy-alt-done)
    ("<C-tab>" . ivy-partial-or-done)
-   ("C-l"   . ivy-alt-done)
-   ("C-i"   . ivy-immediate-done))
+   ("C-l"     . ivy-alt-done)
+   ("C-i"     . ivy-immediate-done)
+   ("<right>" . ivy-alt-done)
+   ("<left>"  . ivy-backward-delete-char)
+   ("<right>" . ivy-alt-done)
+   ("C-<left>"  . left-char)
+   ("C-<right>" . right-char))
   :config
   (ivy-mode 1)
   (setq ivy-extra-directories nil)
@@ -154,7 +159,6 @@
 (defun swap-window-positions ()
    "*Swap the positions of this window and the next one."
    (interactive)
-   (other-window 1)
    (let ((other-window (next-window (selected-window) 'no-minibuf)))
      (let ((other-window-buffer (window-buffer other-window))
            (other-window-hscroll (window-hscroll other-window))
@@ -191,7 +195,7 @@
   (let ((buffers (behiri-filter-buffers)))
     (ivy-read "Change buffer: "
               (mapcar #'buffer-name buffers)
-              :preselect (buffer-name (current-buffer))
+              :preselect (buffer-name (other-buffer (current-buffer)))
               :keymap behiri-change-buffer-keymap
               :action (lambda (buffer)
                         (let ((selected-buffer (get-buffer buffer)))
@@ -245,11 +249,15 @@
 (setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
 (setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
 (setq scroll-step 1)
+(setq scroll-conservatively 10000
+scroll-preserve-screen-position 1)
 
 ;; Revert Dired and other buffers
 (setq global-auto-revert-non-file-buffers t)
 
 ;; Revert buffers when the underlying file has changed
+(setq auto-revert-interval 0.5)
+(setq auto-revert-verbose t)
 (global-auto-revert-mode 1)
 
 ;; Use spaces instead of tabs for indentation
@@ -326,12 +334,9 @@ ALIST is the option channel for display actions (see `display-buffer')."
   (newline-and-indent)
   (newline-and-indent)
   (goto-char (point-max)))
-
-;; no screwing with my middle mouse button
-(global-unset-key [mouse-2])
  
-;; Bright-red TODOs, Dark Green NOTEs, and yellow @mentions
-(setq fixme-modes '(C++-mode C-mode csharp-mode emacs-lisp-mode))
+;; Bright-red TODOs, lawn green NOTEs, and yellow @mentions
+(setq fixme-modes '(c++-mode c-mode csharp-mode emacs-lisp-mode))
 (make-face 'font-lock-fixme-face)
 (make-face 'font-lock-note-face)
 (make-face 'font-lock-mention-face)
@@ -345,7 +350,7 @@ ALIST is the option channel for display actions (see `display-buffer')."
       fixme-modes)
 
 (modify-face 'font-lock-fixme-face "Red" nil nil t nil t nil nil)
-(modify-face 'font-lock-note-face "Dark Green" nil nil t nil t nil nil)
+(modify-face 'font-lock-note-face "LawnGreen" nil nil t nil t nil nil)
 (modify-face 'font-lock-mention-face "Yellow" nil nil t nil t nil nil)
 
 ;; Accepted file extensions and their appropriate modes
@@ -432,11 +437,6 @@ ALIST is the option channel for display actions (see `display-buffer')."
   (define-key c++-mode-map "\C-m" 'newline-and-indent)
   (setq c-hanging-semi&comma-criteria '((lambda () 'stop)))
 
-  ;; Handle super-tabbify (TAB completes, shift-TAB actually tabs)
-  ;;(setq dabbrev-case-replace t)
-  ;;(setq dabbrev-case-fold-search t)
-  ;;(setq dabbrev-upcase-means-case-search t)
-
   ;; Abbrevation expansion
   (abbrev-mode 1)
 
@@ -467,10 +467,8 @@ ALIST is the option channel for display actions (see `display-buffer')."
       (insert "   ======================================================================== */\n"))
 
   (cond ((file-exists-p buffer-file-name) t)
-        ((string-match "[.]hin" buffer-file-name) (behiri-source-format))
-        ((string-match "[.]cin" buffer-file-name) (behiri-source-format))
-        ((string-match "[.]h"   buffer-file-name) (behiri-header-format))
-        ((string-match "[.]cpp" buffer-file-name) (behiri-source-format)))
+      ((string-match "[.]cs\\ |[.]h"            buffer-file-name) (behiri-header-format))
+      ((string-match "[.]hin\\|[.]cin\\|[.]cpp" buffer-file-name) (behiri-source-format)))
 
   (defun open-corresponding-file ()
     "Open the corresponding header/source file for C/C++."
@@ -515,6 +513,84 @@ ALIST is the option channel for display actions (see `display-buffer')."
                                                        "*\\([0-9]+>\\)?\\(\\(?:[a-zA-Z]:\\)?[^:(\t\n]+\\)(\\([0-9]+\\)) : \\(?:see declaration\\|\\(?:warnin\\(g\\)\\|[a-z ]+\\) C[0-9]+:\\)"
                                                        2 3 nil (4))))
 
+;; TODO ? (c-set-offset 'annotation-top-cont 0)
+
+;;; Csharp mode hook
+(defun behiri-csharp-mode-hook ()
+  (setq c-default-style "k&r")
+  (electric-pair-mode 1)
+  (electric-indent-mode 1)
+  (c-set-offset 'arglist-intro '+)
+  (c-set-offset 'arglist-cont 2)
+  (c-set-offset 'arglist-close 0)
+  (setq tab-width 4)
+  (setq c-basic-offset 4)
+  (setq c-hanging-braces-alist '((substatement-open before after)))
+  (setq c-hanging-colons-alist '((member-init-intro before)))
+  (setq c-hanging-semi&comma-criteria '(c-semi&comma-no-newlines-for-oneline-inliners))
+  (setq c-cleanup-list '(brace-else-brace brace-elseif-brace brace-catch-brace empty-defun-braces defun-close-semi))
+  (setq c-hanging-braces-alist
+        (append '((brace-list-open)
+                  (brace-entry-open)
+                  (substatement-open after)
+                  (block-close . c-snug-do-while)
+                  (extern-lang-open after)
+                  (namespace-open after)
+                  (module-open after)
+                  (composition-open after)
+                  (inexpr-class-open after)
+                  (inexpr-class-close before)
+                  (annotation-top-cont 4))
+                c-hanging-braces-alist))
+  (c-set-offset 'innamespace 0)
+  (c-set-offset 'substatement-open 0))
+
+(add-hook 'csharp-mode-hook 'behiri-csharp-mode-hook)
+
+;;; Define a function to insert a Unity script class structure with dynamic class name
+(defun insert-unity-script ()
+  (when (and (string= (file-name-extension buffer-file-name) "cs")
+             (zerop (buffer-size)))
+    (let ((class-name (file-name-sans-extension (file-name-nondirectory buffer-file-name))))
+      (insert (format
+               "using UnityEngine;
+
+namespace
+{
+    public class %s : MonoBehaviour
+    {
+        void Start()
+        {
+            
+        }
+
+        void Awake()
+        {
+            
+        }
+    }
+}
+" class-name)))))
+
+(add-hook 'find-file-hook 'insert-unity-script)
+
+;;; Org-mode
+(setq org-hide-emphasis-markers t)
+(font-lock-add-keywords 'org-mode
+                        '(("^ *\\([-]\\) "
+                           (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+
+;;; recenter the cursor vertically
+(add-hook 'server-switch-hook (lambda () (recenter)))
+(setq scroll-conservatively 21)
+(setq scroll-preserve-screen-position t)
+
+;;; Enable yank-advised-indent
+(defadvice yank (after indent-region activate)
+  (if (member major-mode '(emacs-lisp-mode lisp-mode csharp-mode  c-mode c++-mode plain-tex-mode))
+      (indent-region (region-beginning) (region-end))))
+
+
 (defun behiri-replace-string (FromString ToString)
   "Replace a string without moving point."
   (interactive "sReplace: \nsReplace: %s  With: ")
@@ -534,19 +610,6 @@ ALIST is the option channel for display actions (see `display-buffer')."
       (untabify (point-min) (point-max))))
   (save-buffer))
 
-;; Navigation
-(defun previous-blank-line ()
-  "Moves to the previous line containing nothing but whitespace."
-  (interactive)
-  (search-backward-regexp "^[ \t]*\n"))
-
-(defun next-blank-line ()
-  "Moves to the next line containing nothing but whitespace."
-  (interactive)
-  (forward-line)
-  (search-forward-regexp "^[ \t]*\n")
-  (forward-line -1))
-
 (defun append-as-kill ()
   "Performs copy-region-as-kill as an append."
   (interactive)
@@ -558,6 +621,10 @@ ALIST is the option channel for display actions (see `display-buffer')."
   (interactive)
   (kill-buffer (current-buffer)))
 
+(defun kill-all-buffers ()
+  "Kill all buffers."
+  (interactive)
+  (mapc 'kill-buffer (buffer-list)))
 
 (defun behiri-replace-in-region (old-word new-word)
   "Perform a replace-string in the current region."
@@ -576,7 +643,9 @@ ALIST is the option channel for display actions (see `display-buffer')."
             compilation-error-regexp-alist))
 
 ;; Commands
-(set-variable 'grep-command "findstr -s -n -i -l ")
+(set-variable 'grep-command "findstr -s -n -i -l \"\" *.c *.h *.cs")
+(set-variable 'grep-command-position 22)
+(setq counsel-grep-base-command "findstr -s -n -i -l \"%s\" *.c *.h *.cs")
 
 ;; Smooth scroll
 (setq scroll-step 1) ;; 3
@@ -618,42 +687,10 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (global-hl-line-mode -1)
 (scroll-bar-mode -1)
 
-(add-to-list 'default-frame-alist '(font . "Liberation Mono-11"))
-(add-to-list 'default-frame-alist '(background-color . "#001C14"))
-(add-to-list 'default-frame-alist '(foreground-color . "#EEEE88"))
-(add-to-list 'default-frame-alist '(hl-line-background-color . "#052215"))
-(add-to-list 'default-frame-alist '(cursor-color . "firebrick"))
-
-(set-face-attribute 'default t :font "Liberation Mono-11")
-(set-face-attribute 'font-lock-builtin-face nil :foreground "#DAB98F")
-(set-face-attribute 'font-lock-comment-face nil :foreground "gray50")
-(set-face-attribute 'font-lock-constant-face nil :foreground "olive drab")
-(set-face-attribute 'font-lock-doc-face nil :foreground "gray50")
-(set-face-attribute 'font-lock-function-name-face nil :foreground "burlywood3")
-(set-face-attribute 'font-lock-keyword-face nil :foreground "DarkGoldenrod3")
-(set-face-attribute 'font-lock-string-face nil :foreground "olive drab")
-(set-face-attribute 'font-lock-type-face nil :foreground "burlywood3")
-(set-face-attribute 'font-lock-variable-name-face nil :foreground "burlywood3")
-(set-face-attribute 'region nil :background "#123")
-(set-face-attribute 'ivy-current-match nil :background "#124" :foreground 'unspecified)
-(set-face-background 'hl-line "#052215");
-
-(defun set-font-size ()
-  "Set the font size."
-  (interactive)
-  (set-face-attribute
-   'default nil :height
-   (string-to-number
-    (read-string "Font size: " (number-to-string (face-attribute 'default :height nil))))))
-
 (defun behiri-window-setup-hook ()
   (interactive)
   (menu-bar-mode -1)
   (setq inhibit-startup-message t)
-  (split-window-horizontally)
-  (other-window 1)
-  (find-file behiri-todo-file)
-  (other-window 1)
   (toggle-scroll-bar -1) 
   (tool-bar-mode -1)
   (delete-selection-mode 1))
@@ -668,22 +705,73 @@ ALIST is the option channel for display actions (see `display-buffer')."
               (setq initial-buffer-choice nil)
               (behiri-window-setup-hook))))
 
+;;; set theme
+(add-to-list 'custom-theme-load-path "~/.emacs.d/themes")
+(load-theme 'beam t)
+
+;;; font
+(add-to-list 'default-frame-alist '(font . "Liberation Mono-11"))
+(set-face-attribute 'default t :font "Liberation Mono-11")
+
+(defun set-font-size ()
+  "Set the font size."
+  (interactive)
+  (set-face-attribute
+   'default nil :height
+   (string-to-number
+    (read-string "Font size: " (number-to-string (face-attribute 'default :height nil))))))
+
+
+;;; background color
+(defun behiri-cycle-background-color ()
+  (let ((color-index 0)
+        (colors '("#120823" "#1c1c1c" "#072228" "#072822" "#111122" "#040C08")))
+    (lambda ()
+      (interactive)
+      (setq color-index (mod (1+ color-index) (length colors)))
+      (let* ((color-code (nth color-index colors))
+             (lighter-color (lighter-shade color-code)))
+        (set-background-color color-code)
+        (set-face-attribute 'mode-line-active nil :background lighter-color)
+        (set-face-attribute 'mode-line-inactive nil :background lighter-color)
+        (set-face-attribute 'mode-line nil :background lighter-color)
+        (message "Background color set to %s. Modeline color set to %s" color-code lighter-color)
+        (redraw-display)))))
+
+(defun lighter-shade (color)
+  "Generate a lighter shade of the input color in #RRGGBB format."
+  (let* ((r (string-to-number (substring color 1 3) 16))
+         (g (string-to-number (substring color 3 5) 16))
+         (b (string-to-number (substring color 5 7) 16))
+         (factor 0.023)
+         (new-r (min (+ r (* 255 factor)) 255))
+         (new-g (min (+ g (* 255 factor) 6) 255))
+         (new-b (min (+ b (* 255 factor)) 255)))
+    (format "#%02X%02X%02X" new-r new-g new-b)))
+
+
+;;; global keybindings
+(global-set-key (kbd "C-c c")      (lambda () (interactive) (find-file "~/.emacs.d/init.el")))
 (global-set-key (kbd "M-f")        'find-file)
 (global-set-key (kbd "M-F")        'behiri-find-file-other-window)
 (global-set-key (kbd "M-b")        'ido-switch-buffer)
 (global-set-key (kbd "M-B")        'ido-switch-buffer-other-window)
 (global-set-key (kbd "M-c")        'behiri-change-buffer)
-(global-set-key (kbd "M-C")        'behiri-change-buffer-other-window) ;; capitalize-word
+(global-set-key (kbd "M-C")        'behiri-change-buffer-other-window)
 (global-set-key (kbd "M-t")        'load-todo)
 (global-set-key (kbd "M-T")        'load-log)
 (global-set-key (kbd "M-w")        'other-window)
 (global-set-key (kbd "M-2")        'swap-window-positions)
 (global-set-key (kbd "C-<right>")  'forward-word)
 (global-set-key (kbd "C-<left>")   'backward-word)
-(global-set-key (kbd "C-<up>")     'previous-blank-line)
-(global-set-key (kbd "C-<down>")   'next-blank-line)
+(global-set-key (kbd "C-<up>")     'backward-paragraph)
+(global-set-key (kbd "M-<up>")     'backward-paragraph)
+(global-set-key (kbd "C-<down>")   'forward-paragraph)
+(global-set-key (kbd "M-<down>")   'forward-paragraph)
 (global-set-key (kbd "<home>")     'beginning-of-line)
 (global-set-key (kbd "<end>")      'end-of-line)
+(global-set-key (kbd "C-<home>")   'move-beginning-of-line)
+(global-set-key (kbd "C-<end>")    'move-end-of-line)
 (global-set-key (kbd "<prior>")    'scroll-down-command)
 (global-set-key (kbd "<next>")     'scroll-up-command)
 (global-set-key (kbd "C-<next>")   'scroll-other-window)
@@ -691,8 +779,6 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (global-set-key (kbd "M-v")        'pop-to-mark-command)
 (global-set-key (kbd "M-q")        'append-as-kill)
 (global-set-key (kbd "M-z")        'suspend-frame)
-(global-set-key (kbd "M-<up>")     'previous-blank-line)
-(global-set-key (kbd "M-<down>")   'next-blank-line)
 (global-set-key (kbd "M-<right>")  'forward-word)
 (global-set-key (kbd "M-<left>")   'backward-word)
 (global-set-key (kbd "M-:")        'View-back-to-mark)
@@ -713,7 +799,8 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (global-set-key (kbd "M-'")        'call-last-kbd-macro)
 (global-set-key (kbd "M-r")        'revert-buffer)
 (global-set-key (kbd "M-k")        'kill-current-buffer)
-(global-set-key (kbd "M-s")        'behiri-save-buffer) ;; save-buffer
+(global-set-key (kbd "M-K")        'kill-all-buffers)
+(global-set-key (kbd "M-s")        'behiri-save-buffer)
 (global-set-key (kbd "M-S")        'behiri-save-all-buffers)
 (global-set-key (kbd "<tab>")      'dabbrev-expand)
 (global-set-key (kbd "S-<tab>")    'indent-for-tab-command)
@@ -744,6 +831,12 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (global-set-key (kbd "<insert>")   'yank)
 (global-set-key (kbd "S-<insert>") 'counsel-yank-pop)
 (global-set-key (kbd "C-<insert>") 'overwrite-mode)
+(global-set-key (kbd "C-=")        'enlarge-window-horizontally)
+(global-set-key (kbd "C--")        'shrink-window-horizontally)
+(global-set-key (kbd "C-<f5>")     (behiri-cycle-background-color))
+(global-set-key (kbd "C-c s")      'grep)
+(global-set-key (kbd "C-c S")      'counsel-grep)
+
 
 ;; Make gc pauses faster by decreasing the threshold.
 (setq gc-cons-threshold (* 2 1000 1000))
