@@ -53,6 +53,7 @@
   (("C-s" . swiper)
    ("C-c v" . ivy-push-view)
    ("C-c V" . ivy-pop-view)
+   ("M-SPC" . ivy-switch-view)
    ("C-c g" . counsel-git)
    ("C-c j" . counsel-git-grep)
    ("C-c L" . counsel-git-log)
@@ -65,11 +66,12 @@
    ("<C-tab>" . ivy-partial-or-done)
    ("C-l"     . ivy-alt-done)
    ("C-i"     . ivy-immediate-done)
-   ("<right>" . ivy-alt-done)
-   ("<left>"  . ivy-backward-delete-char)
-   ("<right>" . ivy-alt-done)
-   ("C-<left>"  . left-char)
-   ("C-<right>" . right-char))
+   ;;("<right>" . ivy-alt-done)
+   ;;("<left>"  . ivy-backward-delete-char)
+   ;;("<right>" . ivy-alt-done)
+   ;;("C-<left>"  . left-char)
+   ;;("C-<right>" . right-char)
+   )
   :config
   (ivy-mode 1)
   (setq ivy-extra-directories nil)
@@ -87,9 +89,69 @@
   (setq ivy-prescient-retain-classic-highlighting t))
 
 
+(use-package eglot
+  :ensure t
+  :hook (csharp-mode . eglot-ensure)
+  :bind
+  (("C-c r r" . eglot-rename)
+  ("C-c e f"  . eglot-format)
+  ("C-c e h"  . eglot-help-at-point)
+  ("C-<f12>"  . xref-find-definitions)
+  ("M-<f12>"  . xref-find-definitions-other-window)
+  ("C-c f"    . xref-find-definitions)
+  ("C-c F"    . xref-find-definitions-other-window)
+  ("S-<f12>"  . xref-find-references)
+  ("<f12>"    . xref-find-definitions))
+  :init
+  (setq eglot-ignored-server-capabilites
+        '(:hoverProvider :completionProvider
+                         :signatureHelpProvider :documentHighlightProvider
+                         :documentSymbolProvider :workspaceSymbolProvider
+                         :codeLensProvider ;; :codeActionProvider 
+                         :documentFormattingProvider :documentRangeFormattingProvider
+                         :documentOnTypeFormattingProvider :documentLinkProvider
+                         :colorProvider :foldingRangeProvider
+                         :executeCommandProvider :inlayHintProvider))
+  :config  
+  (add-to-list 'eglot-server-programs `(csharp-mode . ("omnisharp" "-lsp")))
+  :custom
+  (eglot-connect-timeout 60))
+
+;;; Org-mode
+(use-package org
+  :ensure org
+  :bind
+  (:map org-mode-map
+        ("C-<tab>" . org-cycle))
+  :config
+  (setq org-hide-emphasis-markers t)
+  (font-lock-add-keywords 'org-mode
+                          '(("^ *\$([-]\)$ "
+                             (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•")))))))
+
+(defun export-org-to-markdown ()
+  "Export the current Org buffer to a new Markdown file"
+  (interactive)
+  (let* ((buffer-name (buffer-name))
+         (markdown-file (concat (file-name-base buffer-name) ".md")))
+    (with-temp-buffer
+      (insert-buffer-substring (get-buffer buffer-name))
+      (goto-char (point-min))
+      (while (re-search-forward "^#.*\n" nil t)
+        (replace-match "" nil nil))
+      (goto-char (point-min))
+      (while (re-search-forward "^\\(\\*+\\)" nil t)
+        (replace-match
+         (concat
+          (make-string (* 2 (1- (length (match-string 1)))) ? )
+          "-")
+         nil nil))
+      (write-region (point-min) (point-max) markdown-file)
+      (message "Exported Org buffer to %s" markdown-file))))
+
 (setq completion-ignored-extensions
       (append completion-ignored-extensions
-              '(".meta" ".cs.meta" ".csproj" ".sln")))
+              '(".meta" ".cs.meta" ".csproj" ".sln" ".asmdef")))
 
 (defun exec-bat-recursively (dir bat-file)
   "Find and run specified BAT file recursively up to the root directory."
@@ -155,6 +217,13 @@
     (counsel--find-file-1 "Find file other Window by behiri: " initial-input
                           action
                           'counsel-find-file)))
+
+(defun behiri-copy-file-path ()
+  "Copy the current buffer's file path to the kill ring."
+  (interactive)
+  (when buffer-file-name
+    (kill-new buffer-file-name)
+    (message "File path '%s' copied to the clipboard" buffer-file-name)))
 
 (defun swap-window-positions ()
    "*Swap the positions of this window and the next one."
@@ -226,6 +295,32 @@
     (setq ivy--all-candidates (delete selected-buffer ivy--all-candidates))
     (ivy--exhibit)))
 
+(defun behiri-project-find-file-in-other-window ()
+  "Open a file in the other window using project-find-file."
+  (interactive)
+  (let ((current-window (selected-window))
+        (current-buffer (current-buffer))
+        (new-buffer nil))
+    (project-find-file)
+    (unless (equal (current-buffer) current-buffer)
+      (setq new-buffer (current-buffer))
+      (cond
+       ((= (length (window-list)) 1)
+        (split-window-right)
+        (other-window 1)
+        (switch-to-buffer new-buffer)
+        (select-window current-window)
+        (switch-to-buffer current-buffer)
+        (other-window 1))
+       ((= (length (window-list)) 2)
+        (other-window 1)
+        (switch-to-buffer new-buffer)
+        (select-window current-window)
+        (switch-to-buffer current-buffer)
+        (other-window 1))
+       (t
+        (switch-to-buffer new-buffer))))))
+
 (defun behiri-save-all-buffers ()
   "Save all open files, ignoring temporary buffers."
   (interactive)
@@ -252,9 +347,6 @@
 (setq scroll-conservatively 10000
 scroll-preserve-screen-position 1)
 
-;; Revert Dired and other buffers
-(setq global-auto-revert-non-file-buffers t)
-
 ;; Revert buffers when the underlying file has changed
 (setq auto-revert-interval 0.5)
 (setq auto-revert-verbose t)
@@ -280,9 +372,6 @@ ALIST is the option channel for display actions (see `display-buffer')."
 
 (setq undo-limit 20000000)
 (setq undo-strong-limit 40000000)
-
-(setq behiri-todo-file "w:/notes/todo.txt")
-(setq behiri-log-file "w:/notes/log.txt")
 
 (setq behiri-font "outline-Liberation Mono")
 
@@ -319,22 +408,30 @@ ALIST is the option channel for display actions (see `display-buffer')."
 
 (defun load-todo ()
   (interactive)
-  (find-file behiri-todo-file))
+  (find-file "w:/notes/todo.org"))
 
 (defun insert-timeofday ()
   (interactive "*")
   (insert (format-time-string "---------------- %a, %d %b %y: %I:%M%p")))
 
+(defun insert-timestamp ()
+  (interactive "*")
+  (insert (format-time-string "%Y-%m-%d %H:%M")))
+
+(defun insert-signature ()
+  (interactive)
+  (insert "-behiri, " (format-time-string "%d %B %Y")))
+
 (defun load-log ()
   (interactive)
-  (find-file behiri-log-file)
+  (find-file "w:/notes/log.org")
   (goto-char (point-max))
   (newline-and-indent)
-  (insert-timeofday)
-  (newline-and-indent)
+  (insert "* ")
+  (insert-timestamp)
   (newline-and-indent)
   (goto-char (point-max)))
- 
+
 ;; Bright-red TODOs, lawn green NOTEs, and yellow @mentions
 (setq fixme-modes '(c++-mode c-mode csharp-mode emacs-lisp-mode))
 (make-face 'font-lock-fixme-face)
@@ -505,8 +602,8 @@ ALIST is the option channel for display actions (see `display-buffer')."
   (define-key c++-mode-map (kbd "M-/") 'c-mark-function)
   (define-key c++-mode-map (kbd "M-q") 'append-as-kill)
   (define-key c++-mode-map (kbd "M-a") 'yank)
-  (define-key c++-mode-map (kbd "M-z") 'kill-region)
-
+  (define-key c++-mode-map (kbd "C-c C-c") 'comment-or-uncomment-region)
+  
   ;; devenv.com error parsing
   (add-to-list 'compilation-error-regexp-alist 'behiri-devenv)
   (add-to-list 'compilation-error-regexp-alist-alist '(behiri-devenv
@@ -543,7 +640,8 @@ ALIST is the option channel for display actions (see `display-buffer')."
                   (annotation-top-cont 4))
                 c-hanging-braces-alist))
   (c-set-offset 'innamespace 0)
-  (c-set-offset 'substatement-open 0))
+  (c-set-offset 'substatement-open 0)
+  (define-key csharp-mode-map (kbd "C-c C-c") 'comment-or-uncomment-region))
 
 (add-hook 'csharp-mode-hook 'behiri-csharp-mode-hook)
 
@@ -573,12 +671,6 @@ namespace
 " class-name)))))
 
 (add-hook 'find-file-hook 'insert-unity-script)
-
-;;; Org-mode
-(setq org-hide-emphasis-markers t)
-(font-lock-add-keywords 'org-mode
-                        '(("^ *\\([-]\\) "
-                           (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
 
 ;;; recenter the cursor vertically
 (add-hook 'server-switch-hook (lambda () (recenter)))
@@ -643,7 +735,7 @@ namespace
             compilation-error-regexp-alist))
 
 ;; Commands
-(set-variable 'grep-command "findstr -s -n -i -l \"\" *.c *.h *.cs")
+(set-variable 'grep-command "findstr -s -n -i -l \"\" -d .\\. *.c *.h *.cs")
 (set-variable 'grep-command-position 22)
 (setq counsel-grep-base-command "findstr -s -n -i -l \"%s\" *.c *.h *.cs")
 
@@ -683,6 +775,12 @@ namespace
 (setq enable-local-variables nil)
 (setq split-height-threshold 80)
 (setq split-width-threshold 1) ;; nil = split to top and down |  1 = split to right and left
+(setq-default fill-column 95)
+(setq display-line-numbers-width 3)
+
+(setq dabbrev-case-replace nil)
+(setq dabbrev-case-fold-search nil)
+(setq visible-bell t)
 
 (global-hl-line-mode -1)
 (scroll-bar-mode -1)
@@ -721,11 +819,16 @@ namespace
    (string-to-number
     (read-string "Font size: " (number-to-string (face-attribute 'default :height nil))))))
 
-
 ;;; background color
 (defun behiri-cycle-background-color ()
   (let ((color-index 0)
-        (colors '("#120823" "#1c1c1c" "#072228" "#072822" "#111122" "#040C08")))
+        (colors '("#072228" "#072822" "#2A282A" "#090909"
+                  "#1c1c1c" "#202432" "#111122" "#040C08"
+                  "#22212C" "#1E1D2D" "#181818" "#0D1712"
+                  "#100E05"
+                  )))
+    ;; crt greens     "#223229" "#17221C" "#16231C"  "#1A2821"
+    
     (lambda ()
       (interactive)
       (setq color-index (mod (1+ color-index) (length colors)))
@@ -738,6 +841,20 @@ namespace
         (message "Background color set to %s. Modeline color set to %s" color-code lighter-color)
         (redraw-display)))))
 
+
+;;; foreground color
+(defun behiri-cycle-foreground-color ()
+  (let ((color-index 0)
+        (colors '("#bbff88" "#fff176" "#f5f5f5" "#20C16D" "#90ee90"
+                  "#FFFFFF" "#D2B58C" "#E2C59C" )))
+    (lambda ()
+      (interactive)
+      (setq color-index (mod (1+ color-index) (length colors)))
+      (let* ((color-code (nth color-index colors)))
+        (set-foreground-color color-code)
+        (message "foreground color set to %s." color-code)
+        (redraw-display)))))
+
 (defun lighter-shade (color)
   "Generate a lighter shade of the input color in #RRGGBB format."
   (let* ((r (string-to-number (substring color 1 3) 16))
@@ -748,7 +865,6 @@ namespace
          (new-g (min (+ g (* 255 factor) 6) 255))
          (new-b (min (+ b (* 255 factor)) 255)))
     (format "#%02X%02X%02X" new-r new-g new-b)))
-
 
 ;;; global keybindings
 (global-set-key (kbd "C-c c")      (lambda () (interactive) (find-file "~/.emacs.d/init.el")))
@@ -808,6 +924,7 @@ namespace
 (global-set-key (kbd "C-<tab>")    'indent-region)
 (global-set-key (kbd "C-z")        'undo)
 (global-set-key (kbd "C-f")        'yank)
+(global-set-key (kbd "C-S-f")      'counsel-yank-pop) 
 (global-set-key (kbd "C-q")        'kill-ring-save)
 (global-set-key (kbd "<escape>")   'keyboard-escape-quit)
 (global-set-key (kbd "C-c e r")    'eval-region)
@@ -834,9 +951,38 @@ namespace
 (global-set-key (kbd "C-=")        'enlarge-window-horizontally)
 (global-set-key (kbd "C--")        'shrink-window-horizontally)
 (global-set-key (kbd "C-<f5>")     (behiri-cycle-background-color))
+(global-set-key (kbd "C-<f6>")     (behiri-cycle-foreground-color))
 (global-set-key (kbd "C-c s")      'grep)
 (global-set-key (kbd "C-c S")      'counsel-grep)
+(global-set-key (kbd "C-c C-c")    'comment-or-uncomment-region)
+(global-set-key (kbd "M-p")        'project-find-file)
+(global-set-key (kbd "M-P")        'behiri-project-find-file-in-other-window)
+(global-set-key (kbd "C-v")        'nil)
+(global-set-key (kbd "C-c C-s")    'nil)
+(global-set-key (kbd "C-c i s")    'insert-signature)
+(global-set-key (kbd "C-c i t")    'insert-timestamp)
+(global-set-key (kbd "C-c i d")    'insert-timeofday)
+(global-set-key (kbd "C-c p")      'behiri-copy-file-path)
+(global-set-key (kbd "C-x F")      'display-fill-column-indicator-mode)
+(global-set-key (kbd "M-1")        'Behiri-shell)
+(global-set-key (kbd "M-3")        'shell-command)
+(global-set-key (kbd "`")          'Behiri-shell)
+(global-set-key (kbd "C-~") (lambda () (interactive) (insert "`")))
+(global-set-key (kbd "C-,") 'beginning-of-buffer)
+(global-set-key (kbd "C-.") 'end-of-buffer)
+(global-set-key (kbd "C-c l") 'global-display-line-numbers-mode)
+(global-set-key (kbd "C-l") 'right-char)
 
+(defun Behiri-shell ()
+  (interactive)
+  (split-window-vertically (floor (* 0.66 (window-height))))
+  (shell)
+  (swap-window-positions))
 
-;; Make gc pauses faster by decreasing the threshold.
+(add-hook 'shell-mode-hook 'comint-mode)
+(define-key comint-mode-map (kbd "M-<backspace>") 'comint-kill-input)
+(define-key comint-mode-map (kbd "`") 'delete-window)
+(define-key comint-mode-map (kbd "M-1") 'delete-window)
+(define-key comint-mode-map (kbd "C-<tab>") 'comint-dynamic-complete-filename)
+
 (setq gc-cons-threshold (* 2 1000 1000))
