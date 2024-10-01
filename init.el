@@ -3,6 +3,8 @@
 ;; The default is 800 kilobytes.  Measured in bytes.
 (setq gc-cons-threshold (* 50 1000 1000))
 
+(setq custom-file "~/.emacs.d/custom.el")
+
 ;; Profile emacs startup
 (add-hook 'emacs-startup-hook
           (lambda ()
@@ -125,9 +127,30 @@
         ("C-<tab>" . org-cycle))
   :config
   (setq org-hide-emphasis-markers t)
-  (font-lock-add-keywords 'org-mode
-                          '(("^ *\$([-]\)$ "
-                             (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•")))))))
+  (setq org-log-done 'time)
+  (setq org-return-follows-link  t)
+  (setq org-todo-keywords
+        '((sequence "TODO(t)" "IN-PROGRESS(p)" "INSPECT(i)" "|" "DONE(d)" "VERIFY(v)" "FIXED(f)" "CANCELLED(c)" "DEFERRED(w)" "INVALID(n)")
+          ))
+  (setq org-todo-keyword-faces
+        '(
+          ("TODO" . (:foreground "GoldenRod" :weight bold))
+          ("INSPECT" . (:foreground "SlateBlue" :weight bold))
+          ("INPROGRESS" . (:foreground "DodgerBlue" :weight bold))
+          ("DONE" . (:foreground "LimeGreen" :weight bold))
+          ("FIXED" . (:foreground "LimeGreen" :weight bold))
+          ("VERIFY" . (:foreground "DarkGreen" :weight bold))
+          ("DEFERRED" . (:foreground "GreenYellow" :weight bold))
+          ("CANCELLED" . (:foreground "Red" :weight bold))
+          ("INVALID" . (:foreground "DarkRed" :weight bold))
+          ))
+  (add-hook 'org-mode-hook 'org-indent-mode)
+  ;; (add-hook 'org-mode-hook 'visual-line-mode)
+  ;; (font-lock-add-keywords 'org-mode
+  ;;                         '(("^ *\$([-]\)$ "
+  ;;                            (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+  )
+
 
 (defun export-org-to-markdown ()
   "Export the current Org buffer to a new Markdown file"
@@ -173,28 +196,12 @@
       (when (not (string= dir "/"))
         (exec-bat-recursively-with-compile (file-name-directory (directory-file-name dir)) bat-file)))))
 
-(defun exec-bat ()
-  "Start the recursive search for specified BAT file."
-  (interactive)
-  (let ((bat-file (read-string "Enter the BAT file name: ")))
-    (exec-bat-recursively (file-name-directory buffer-file-name) bat-file)))
-
-(defun exec-run-bat ()
-  "Exec the build.bat file recursively up to the root directory."
-  (interactive)
-  (exec-bat-recursively-with-compile (file-name-directory buffer-file-name) "run.bat"))
-
 (defun exec-build-bat ()
   "Exec the build.bat file recursively up to the root directory."
   (interactive)
   (exec-bat-recursively-with-compile (file-name-directory buffer-file-name) "build.bat"))
 
 (defun exec-debug-bat ()
-  "Exec the build.bat file recursively up to the root directory."
-  (interactive)
-  (exec-bat-recursively (file-name-directory buffer-file-name) "debug.bat"))
-
-(defun exec-debug-bat-with-confirmation ()
   "Executes the build.bat file recursively with confirmation."
   (interactive)
   (when (y-or-n-p "Are you sure you want to execute debug.bat?")
@@ -643,7 +650,7 @@ ALIST is the option channel for display actions (see `display-buffer')."
   (c-set-offset 'substatement-open 0)
   (define-key csharp-mode-map (kbd "C-c C-c") 'comment-or-uncomment-region))
 
-(add-hook 'csharp-mode-hook 'behiri-csharp-mode-hook)
+;; (add-hook 'csharp-mode-hook 'behiri-csharp-mode-hook)
 
 ;;; Define a function to insert a Unity script class structure with dynamic class name
 (defun insert-unity-script ()
@@ -657,15 +664,6 @@ namespace
 {
     public class %s : MonoBehaviour
     {
-        void Start()
-        {
-            
-        }
-
-        void Awake()
-        {
-            
-        }
     }
 }
 " class-name)))))
@@ -691,7 +689,7 @@ namespace
     (while (search-forward FromString nil t)
       (replace-match ToString))))
 
-(add-hook 'c-mode-common-hook 'behiri-big-fun-c-hook)
+;; (add-hook 'c-mode-common-hook 'behiri-big-fun-c-hook)
 
 (defun behiri-save-buffer ()
   "Save the buffer after untabifying it."
@@ -825,7 +823,7 @@ namespace
         (colors '("#072228" "#072822" "#2A282A" "#090909"
                   "#1c1c1c" "#202432" "#111122" "#040C08"
                   "#22212C" "#1E1D2D" "#181818" "#0D1712"
-                  "#100E05"
+                  "#100E05" "#2A241D" "#1A140D"
                   )))
     ;; crt greens     "#223229" "#17221C" "#16231C"  "#1A2821"
     
@@ -846,7 +844,7 @@ namespace
 (defun behiri-cycle-foreground-color ()
   (let ((color-index 0)
         (colors '("#bbff88" "#fff176" "#f5f5f5" "#20C16D" "#90ee90"
-                  "#FFFFFF" "#D2B58C" "#E2C59C" )))
+                  "#FFFFFF" "#D2B58C" "#E2C59C" "#00BB4E" "#cdd2ca")))
     (lambda ()
       (interactive)
       (setq color-index (mod (1+ color-index) (length colors)))
@@ -866,12 +864,23 @@ namespace
          (new-b (min (+ b (* 255 factor)) 255)))
     (format "#%02X%02X%02X" new-r new-g new-b)))
 
+(defun search-with-baregrep ()
+  "Prompt for a search string and use BareGrep to search in the specified path."
+  (interactive)
+  (let ((search-string (read-string "Enter search string: ")))
+    (start-process "baregrep" "*BareGrep Output*"
+                   "C:/Tools/BareGrep/baregrep.exe" search-string
+                   (concat "*.c")   (concat "*.h")
+                   (concat "*.cpp") (concat "*.cs"))))
+
 ;;; global keybindings
 (global-set-key (kbd "C-c c")      (lambda () (interactive) (find-file "~/.emacs.d/init.el")))
 (global-set-key (kbd "M-f")        'find-file)
 (global-set-key (kbd "M-F")        'behiri-find-file-other-window)
-(global-set-key (kbd "M-b")        'ido-switch-buffer)
-(global-set-key (kbd "M-B")        'ido-switch-buffer-other-window)
+;;(global-set-key (kbd "M-b")        'ido-switch-buffer)
+;;(global-set-key (kbd "M-B")        'ido-switch-buffer-other-window)
+(global-set-key (kbd "M-b")        'counsel-ibuffer)
+(global-set-key (kbd "M-B")        'ibuffer-other-window)
 (global-set-key (kbd "M-c")        'behiri-change-buffer)
 (global-set-key (kbd "M-C")        'behiri-change-buffer-other-window)
 (global-set-key (kbd "M-t")        'load-todo)
@@ -932,10 +941,8 @@ namespace
 (global-set-key (kbd "C-c r t")    'string-rectangle)
 (global-set-key (kbd "C-c r k")    'kill-rectangle)
 (global-set-key (kbd "M-m")        'exec-build-bat)
-(global-set-key (kbd "<f5>")       'exec-bat)
-(global-set-key (kbd "<f6>")       'exec-debug-bat-with-confirmation)
+(global-set-key (kbd "<f6>")       'exec-debug-bat)
 (global-set-key (kbd "<f8>")       'exec-build-bat)
-(global-set-key (kbd "<f7>")       'exec-run-bat)
 (global-set-key (kbd "<f9>")       'first-error)
 (global-set-key (kbd "<f10>")      'previous-error)
 (global-set-key (kbd "<f11>")      'next-error)
@@ -971,7 +978,9 @@ namespace
 (global-set-key (kbd "C-,") 'beginning-of-buffer)
 (global-set-key (kbd "C-.") 'end-of-buffer)
 (global-set-key (kbd "C-c l") 'global-display-line-numbers-mode)
-(global-set-key (kbd "C-l") 'right-char)
+(global-set-key (kbd "C-S-s") 'search-with-baregrep)
+(global-set-key (kbd "C-S-d") 'duplicate-line)
+
 
 (defun Behiri-shell ()
   (interactive)
@@ -984,5 +993,8 @@ namespace
 (define-key comint-mode-map (kbd "`") 'delete-window)
 (define-key comint-mode-map (kbd "M-1") 'delete-window)
 (define-key comint-mode-map (kbd "C-<tab>") 'comint-dynamic-complete-filename)
+
+
+(setq load-file custom-file)
 
 (setq gc-cons-threshold (* 2 1000 1000))
