@@ -16,12 +16,17 @@
 
 (require 'package)
 
-(setq package-archives '(("melpa" . "https://melpa.org/packages/")
+(setq package-archives '(("melpa"        . "https://melpa.org/packages/")
                          ("melpa-stable" . "https://stable.melpa.org/packages/")
-                         ("org" . "https://orgmode.org/elpa/")
-                         ("elpa" . "https://elpa.gnu.org/packages/")))
+                         ("org"          . "https://orgmode.org/elpa/")
+                         ("elpa"         . "https://elpa.gnu.org/packages/")))
 
 (package-initialize)
+
+(add-to-list 'load-path "~/.emacs.d/extra/simpc-mode")
+(require 'simpc-mode)
+(add-to-list 'auto-mode-alist '("\\.c\\'" . simpc-mode))
+(add-to-list 'auto-mode-alist '("\\.cpp\\'" . simpc-mode))
 
 (set-default-coding-systems 'utf-8)
 
@@ -67,13 +72,7 @@
    ("<tab>"   . ivy-alt-done)
    ("<C-tab>" . ivy-partial-or-done)
    ("C-l"     . ivy-alt-done)
-   ("C-i"     . ivy-immediate-done)
-   ;;("<right>" . ivy-alt-done)
-   ;;("<left>"  . ivy-backward-delete-char)
-   ;;("<right>" . ivy-alt-done)
-   ;;("C-<left>"  . left-char)
-   ;;("C-<right>" . right-char)
-   )
+   ("C-i"     . ivy-immediate-done))
   :config
   (ivy-mode 1)
   (setq ivy-extra-directories nil)
@@ -86,14 +85,12 @@
   (ivy-prescient-mode 1)
   (prescient-persist-mode 1)
   (setq prescient-sort-length-enable nil)
-  ;; (setq prescient-filter-method '(literal regexp fuzzy))
   (setq ivy-prescient-enable-filtering nil)
   (setq ivy-prescient-retain-classic-highlighting t))
 
-
 (use-package eglot
   :ensure t
-  :hook (csharp-mode . eglot-ensure)
+;  :hook (csharp-mode . eglot-ensure)
   :bind
   (("C-c r r" . eglot-rename)
   ("C-c e f"  . eglot-format)
@@ -109,7 +106,7 @@
         '(:hoverProvider :completionProvider
                          :signatureHelpProvider :documentHighlightProvider
                          :documentSymbolProvider :workspaceSymbolProvider
-                         :codeLensProvider ;; :codeActionProvider 
+                         :codeLensProvider :codeActionProvider 
                          :documentFormattingProvider :documentRangeFormattingProvider
                          :documentOnTypeFormattingProvider :documentLinkProvider
                          :colorProvider :foldingRangeProvider
@@ -119,7 +116,7 @@
   :custom
   (eglot-connect-timeout 60))
 
-;;; Org-mode
+;; Org-mode
 (use-package org
   :ensure org
   :bind
@@ -144,33 +141,7 @@
           ("CANCELLED" . (:foreground "Red" :weight bold))
           ("INVALID" . (:foreground "DarkRed" :weight bold))
           ))
-  (add-hook 'org-mode-hook 'org-indent-mode)
-  ;; (add-hook 'org-mode-hook 'visual-line-mode)
-  ;; (font-lock-add-keywords 'org-mode
-  ;;                         '(("^ *\$([-]\)$ "
-  ;;                            (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
-  )
-
-
-(defun export-org-to-markdown ()
-  "Export the current Org buffer to a new Markdown file"
-  (interactive)
-  (let* ((buffer-name (buffer-name))
-         (markdown-file (concat (file-name-base buffer-name) ".md")))
-    (with-temp-buffer
-      (insert-buffer-substring (get-buffer buffer-name))
-      (goto-char (point-min))
-      (while (re-search-forward "^#.*\n" nil t)
-        (replace-match "" nil nil))
-      (goto-char (point-min))
-      (while (re-search-forward "^\\(\\*+\\)" nil t)
-        (replace-match
-         (concat
-          (make-string (* 2 (1- (length (match-string 1)))) ? )
-          "-")
-         nil nil))
-      (write-region (point-min) (point-max) markdown-file)
-      (message "Exported Org buffer to %s" markdown-file))))
+  (add-hook 'org-mode-hook 'org-indent-mode))
 
 (setq completion-ignored-extensions
       (append completion-ignored-extensions
@@ -224,6 +195,7 @@
     (counsel--find-file-1 "Find file other Window by behiri: " initial-input
                           action
                           'counsel-find-file)))
+
 
 (defun behiri-copy-file-path ()
   "Copy the current buffer's file path to the kill ring."
@@ -377,8 +349,8 @@ ALIST is the option channel for display actions (see `display-buffer')."
          display-buffer-use-some-window
          display-buffer-pop-up-frame)))
 
-(setq undo-limit 20000000)
-(setq undo-strong-limit 40000000)
+(setq undo-limit 20000)
+(setq undo-strong-limit 40000)
 
 (setq behiri-font "outline-Liberation Mono")
 
@@ -396,8 +368,8 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (setq backup-directory-alist `(("." . "~/.emacs-backups")))
 
 ;; Additional Ivy config options
-(setq ivy-use-virtual-buffers t) ; Enable recent files in switch buffer command
-(setq enable-recursive-minibuffers t) ;;Allow commands in minibuffer recursively
+(setq ivy-use-virtual-buffers t) ;; Enable recent files in switch buffer command
+(setq enable-recursive-minibuffers t) ;; Allow commands in minibuffer recursively
 (setq ivy-wrap t) ;; Wrap around candidate list
 
 (load-library "view")
@@ -461,22 +433,15 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (setq auto-mode-alist
       (append
        '(("\\.cpp$"    . c++-mode)
-         ("\\.hin$"    . c++-mode)
-         ("\\.cin$"    . c++-mode)
-         ("\\.inl$"    . c++-mode)
-         ("\\.rdc$"    . c++-mode)
-         ("\\.h$"    . c++-mode)
-         ("\\.c$"   . c++-mode)
-         ("\\.cc$"   . c++-mode)
-         ("\\.c8$"   . c++-mode)
-         ("\\.txt$" . indented-text-mode)
-         ("\\.emacs$" . emacs-lisp-mode)
-         ("\\.gen$" . gen-mode)
-         ("\\.ms$" . fundamental-mode)
-         ("\\.m$" . objc-mode)
-         ("\\.mm$" . objc-mode)
+         ("\\.hpp$"    . c++-mode) 
+         ("\\.h$"      . c-mode) 
+         ("\\.c$"      . c-mode)
+         ("\\.cc$"     . c-mode)
+         ("\\.txt$"    . indented-text-mode)
+         ("\\.emacs$"  . emacs-lisp-mode)
          ) auto-mode-alist))
-;; C++ indentation style
+
+;; C++ indentation style BigFun
 (defconst behiri-big-fun-c-style
   '((c-electric-pound-behavior   . nil)
     (c-tab-always-indent         . t)
@@ -496,15 +461,18 @@ ALIST is the option channel for display actions (see `display-buffer')."
                                     (substatement-open)
                                     (statement-case-open)
                                     (class-open)))
+
     (c-hanging-colons-alist      . ((inher-intro)
                                     (case-label)
                                     (label)
                                     (access-label)
                                     (access-key)
                                     (member-init-intro)))
+    
     (c-cleanup-list              . (scope-operator
                                     list-close-comma
                                     defun-close-semi))
+
     (c-offsets-alist             . ((arglist-close         .  c-lineup-arglist)
                                     (label                 . -4)
                                     (access-label          . -4)
@@ -621,36 +589,25 @@ ALIST is the option channel for display actions (see `display-buffer')."
 
 ;;; Csharp mode hook
 (defun behiri-csharp-mode-hook ()
-  (setq c-default-style "k&r")
-  (electric-pair-mode 1)
-  (electric-indent-mode 1)
-  (c-set-offset 'arglist-intro '+)
-  (c-set-offset 'arglist-cont 2)
-  (c-set-offset 'arglist-close 0)
-  (setq tab-width 4)
+  (setq c-default-style "BigFun")
   (setq c-basic-offset 4)
-  (setq c-hanging-braces-alist '((substatement-open before after)))
-  (setq c-hanging-colons-alist '((member-init-intro before)))
-  (setq c-hanging-semi&comma-criteria '(c-semi&comma-no-newlines-for-oneline-inliners))
-  (setq c-cleanup-list '(brace-else-brace brace-elseif-brace brace-catch-brace empty-defun-braces defun-close-semi))
-  (setq c-hanging-braces-alist
-        (append '((brace-list-open)
-                  (brace-entry-open)
-                  (substatement-open after)
-                  (block-close . c-snug-do-while)
-                  (extern-lang-open after)
-                  (namespace-open after)
-                  (module-open after)
-                  (composition-open after)
-                  (inexpr-class-open after)
-                  (inexpr-class-close before)
-                  (annotation-top-cont 4))
-                c-hanging-braces-alist))
-  (c-set-offset 'innamespace 0)
+  (setq csharp-indent-offset 4)
+  (c-set-offset 'statement-block-intro '+)
   (c-set-offset 'substatement-open 0)
+  (c-set-offset 'topmost-intro-cont 0)
+  (c-set-offset 'inline-open 0)
+  (c-set-offset 'case-label '+)
+  (c-set-offset 'statement-case-intro '+)
+  (c-set-offset 'class-open 0)
+  (c-set-offset 'class-close 0)
+  (c-set-offset 'defun-open 0)
+  (c-set-offset 'defun-close 0)
+  (c-set-offset 'inher-intro 0)
+  (c-set-offset 'access-label 0)
+  (c-set-offset 'label 0)
   (define-key csharp-mode-map (kbd "C-c C-c") 'comment-or-uncomment-region))
 
-;; (add-hook 'csharp-mode-hook 'behiri-csharp-mode-hook)
+(add-hook 'csharp-mode-hook 'behiri-csharp-mode-hook)
 
 ;;; Define a function to insert a Unity script class structure with dynamic class name
 (defun insert-unity-script ()
@@ -689,7 +646,7 @@ namespace
     (while (search-forward FromString nil t)
       (replace-match ToString))))
 
-;; (add-hook 'c-mode-common-hook 'behiri-big-fun-c-hook)
+(add-hook 'c-mode-common-hook 'behiri-big-fun-c-hook)
 
 (defun behiri-save-buffer ()
   "Save the buffer after untabifying it."
@@ -780,6 +737,7 @@ namespace
 (setq dabbrev-case-fold-search nil)
 (setq visible-bell t)
 
+;; (global-subword-mode 1)
 (global-hl-line-mode -1)
 (scroll-bar-mode -1)
 
@@ -873,7 +831,7 @@ namespace
                    (concat "*.c")   (concat "*.h")
                    (concat "*.cpp") (concat "*.cs"))))
 
-;;; global keybindings
+;; global keybindings 
 (global-set-key (kbd "C-c c")      (lambda () (interactive) (find-file "~/.emacs.d/init.el")))
 (global-set-key (kbd "M-f")        'find-file)
 (global-set-key (kbd "M-F")        'behiri-find-file-other-window)
@@ -974,13 +932,14 @@ namespace
 (global-set-key (kbd "M-1")        'Behiri-shell)
 (global-set-key (kbd "M-3")        'shell-command)
 (global-set-key (kbd "`")          'Behiri-shell)
-(global-set-key (kbd "C-~") (lambda () (interactive) (insert "`")))
-(global-set-key (kbd "C-,") 'beginning-of-buffer)
-(global-set-key (kbd "C-.") 'end-of-buffer)
-(global-set-key (kbd "C-c l") 'global-display-line-numbers-mode)
-(global-set-key (kbd "C-S-s") 'search-with-baregrep)
-(global-set-key (kbd "C-S-d") 'duplicate-line)
-
+(global-set-key (kbd "C-,")        'beginning-of-buffer)
+(global-set-key (kbd "C-.")        'end-of-buffer)
+(global-set-key (kbd "C-c l")      'global-display-line-numbers-mode)
+(global-set-key (kbd "C-S-s")      'search-with-baregrep)
+(global-set-key (kbd "C-S-d")      'duplicate-line)
+(global-set-key (kbd "C-c m")      'compile)
+(global-set-key (kbd "C-S-<up>")   (lambda () (interactive) (transpose-lines -1)))
+(global-set-key (kbd "C-S-<down>") (lambda () (interactive) (transpose-lines 1)))
 
 (defun Behiri-shell ()
   (interactive)
@@ -994,7 +953,7 @@ namespace
 (define-key comint-mode-map (kbd "M-1") 'delete-window)
 (define-key comint-mode-map (kbd "C-<tab>") 'comint-dynamic-complete-filename)
 
-
 (setq load-file custom-file)
+(setq load-file "~/.emacs.d/misc.el")
 
 (setq gc-cons-threshold (* 2 1000 1000))

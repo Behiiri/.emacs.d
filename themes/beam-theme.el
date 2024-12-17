@@ -1,3 +1,4 @@
+
 ;; ========================================================================
 ;; $File: beam-theme.el$
 ;; $Date: 2024-04-15$
@@ -8,12 +9,12 @@
 
 (deftheme beam
   "Dark green theme with light text colors")
-(let ((beam-font         "Liberation Mono")
+(let ((beam-font         "Liberation Mono") ;; DejaVu Sans Mono
       (beam-bg           "#040c08")
       (beam-fg           "#fff176")
       (beam-bg-lighter   "#081810")
       (beam-modeline-fg  "#33ff33")
-      (beam-highlights   "#114c23")
+      (beam-highlights   "#113322")
       (beam-strings      "#FFB000")
       (beam-functions    "#16d3d2")
       (beam-keywords     "#ffcc00")
@@ -43,22 +44,24 @@
    '(variable-pitch ((t (:family beam-font))))
    `(escape-glyph ((t (:foreground, beam-dark-green))))
    `(font-lock-builtin-face ((t (:foreground, beam-light-green))))
-   `(font-lock-constant-face ((t (:inherit default)))) ;; ((t (:foreground, beam-fg)))
+   `(font-lock-constant-face ((t (:inherit default))))
    `(font-lock-comment-face ((t (:foreground, beam-comments))))
    `(font-lock-string-face ((t (:foreground, beam-strings))))
    `(font-lock-preprocessor-face ((t (:foreground, beam-strings))))
    `(font-lock-keyword-face ((t (:foreground, beam-keywords :inherit bold))))
    `(font-lock-function-name-face ((t (:foreground, beam-functions))))
-   `(font-lock-type-face ((t (:inherit default)))) ;; `(font-lock-type-face ((t (:foreground, beam-fg))))
+   `(font-lock-type-face ((t (:inherit default))))
    `(font-lock-doc-face ((t (:foreground, beam-grey))))
-   `(font-lock-variable-name-face ((t (:inherit default)))) ;;  ((t (:foreground, beam-fg))
+   `(font-lock-variable-name-face ((t (:inherit default))))
    `(font-lock-regexp-grouping-backslash ((t (:inherit bold))))
    `(font-lock-regexp-grouping-construct ((t (:inherit bold))))
    `(font-lock-highlighting-faces ((t (:foreground, beam-light-green))))
    `(font-lock-negation-char-face ((t (:foreground, beam-red :weight bold))))
    `(font-lock-warning-face ((t (:foreground, beam-yellow))))
-   `(highlight ((t (:background, beam-dark-green :foreground, beam-bright-green :weight normal))))
-   `(lazy-highlight ((t (:background, beam-highlights :foreground, beam-light-green))))
+   ;;`(highlight ((t (:background, "#133323" :foreground, "#BF5" :weight normal :extend))))
+   `(highlight ((t (:extend t :background "#133323" :weight normal)))) ;; :foreground "#8C5" 
+   `(lazy-highlight ((t (:extend t :background "#133323" :weight normal)))) ;; :foreground "#8C5" 
+   ;; `(lazy-highlight ((t (:background, beam-highlights :foreground, beam-light-green))))
    `(tooltip ((t (:background, beam-grey :foreground, beam-black :inherit bold))))
    `(match ((t (:foreground, beam-grey :brackground, beam-black))))
    `(shadown ((t (:foreground, beam-dark-green))))
@@ -84,13 +87,12 @@
    `(tool-bar ((t (:background, beam-black :foreground, beam-dark-green))))
    `(menu ((t (:background, beam-green :foreground, beam-black :box nil))))
    `(visible-bell ((t (:foreground, beam-black :background, beam-bright-green))))
-
-   `(isearch ((t (:foreground, beam-light-green :background, "#315c63" ))))
-   `(isearch-fail ((t (:foreground, beam-red :background, beam-black ))))
+   '(isearch ((t (:inherit defualt :background "#1F2F3F"))))
+   `(search-fail ((t (:foreground, beam-red :background, beam-black))))
 
    `(whitespace-empty ((t (:background nil :foreground , beam-light-green))))
    `(whitespace-indentation ((t (:background nil :foreground , beam-light-green))))
-   `(whitespace-line ((t (:background nil :foreground , beam-light-green))))
+   `(pace-line ((t (:background nil :foreground , beam-light-green))))
    `(whitespace-newline ((t (:background nil :foreground , beam-light-green))))
    `(whitespace-space ((t (:background nil :foreground , beam-light-green))))
    `(whitespace-space-after-tab ((t (:background nil :foreground , beam-light-green))))
@@ -102,7 +104,8 @@
    `(show-paren-match ((t (:foreground, beam-green :weight bold))))
    `(show-paren-mismatch ((t (:foreground, beam-red :weight bold))))
 
-   `(ivy-current-match ((t (:background, beam-highlights))))
+   '(ivy-current-match ((t (:inherit highlight))))
+   '(ivy-minibuffer-match-face-2 ((t (:inherit isearch :weight bold))))
    
    `(vertical-border ((t (:foreground, beam-bg-lighter))))
    `(info ((t (:foreground, beam-bright-green))))
