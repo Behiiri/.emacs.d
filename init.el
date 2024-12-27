@@ -30,21 +30,12 @@
 
 (set-default-coding-systems 'utf-8)
 
+
 (use-package compile
   :init
   (progn
     (setq compilation-scroll-output t)
     (setq compilation-always-kill t)))
-
-(use-package counsel
-  :ensure t
-  :diminish
-  :bind
-  ("C-x C-f" . counsel-find-file)
-  :custom
-  (counsel-find-file-ignore-regexp "\\(?:^[#.]\\)\\|\\(?:\\.\\(cs\\)?meta\\)")
-  :init
-  (counsel-mode 1))
 
 (setq ido-ignore-extensions t)
 (add-to-list 'completion-ignored-extensions ".meta")
@@ -78,15 +69,57 @@
   (setq ivy-extra-directories nil)
   (setq ivy-use-selectable-prompt t))
 
+(use-package counsel
+  :ensure t
+  :diminish
+  :bind
+  ("C-x C-f" . counsel-find-file)
+  :custom
+  (counsel-find-file-ignore-regexp "\\(?:^[#.]\\)\\|\\(?:\\.\\(cs\\)?meta\\)")
+  :init
+  (counsel-mode 1))
+
 (use-package ivy-prescient
   :ensure t
-  :after counsel
   :config
   (ivy-prescient-mode 1)
   (prescient-persist-mode 1)
   (setq prescient-sort-length-enable nil)
   (setq ivy-prescient-enable-filtering nil)
   (setq ivy-prescient-retain-classic-highlighting t))
+
+(use-package projectile
+  :ensure t
+  :init
+  (projectile-mode +1)
+  :bind-keymap
+  ("C-c p" . projectile-command-map)
+  :config
+  ;;(setq projectile-project-search-path '("~/.emacs.d/projects/"))
+  (setq projectile-enable-caching t)
+  ;;(setq projectile-mode-line-prefix " ")
+  (setq projectile-mode-line-function '(lambda () (format " [%s]" (projectile-project-name))))
+)
+
+;; Counsel Projectile configuration
+(use-package counsel-projectile
+  :ensure t
+  :after (counsel projectile)  ;; Load after counsel and projectile
+  :config
+  (counsel-projectile-mode +1)
+  (define-key projectile-mode-map (kbd "C-M-c") 'counsel-projectile-switch-to-buffer))
+
+
+;; (use-package perspective
+;;   :ensure t
+;;   :bind
+;;   ("C-x C-b" . persp-list-buffers)         ; or use a nicer switcher, see below
+;;   :custom
+;;   (persp-mode-prefix-key (kbd "C-c M-p"))  ; pick your own prefix key here
+;;   (setq perspective-initial-frame "Main")  ; Set the initial perspective name
+;;   (setq perspective-auto-save t)           ; Enable auto-saving of perspectives
+;;   :init
+;;   (persp-mode))
 
 (use-package eglot
   :ensure t
@@ -171,6 +204,12 @@
   "Exec the build.bat file recursively up to the root directory."
   (interactive)
   (exec-bat-recursively-with-compile (file-name-directory buffer-file-name) "build.bat"))
+
+(defun exec-run-bat ()
+  "Exec the run.bat file recursively up to the root directory."
+  (interactive)
+  (exec-bat-recursively-with-compile (file-name-directory buffer-file-name) "run.bat"))
+
 
 (defun exec-debug-bat ()
   "Executes the build.bat file recursively with confirmation."
@@ -547,11 +586,12 @@ ALIST is the option channel for display actions (see `display-buffer')."
     (interactive)
     (let* ((base-file-name (file-name-sans-extension buffer-file-name))
            (corresponding-file-name
-            (cond ((string-match "\\.c" buffer-file-name) (concat base-file-name ".h"))
-                  ((string-match "\\.h" buffer-file-name) (concat base-file-name ".c"))
-                  ((string-match "\\.cpp" buffer-file-name) (concat base-file-name ".h"))
-                  ((string-match "\\.h" buffer-file-name) (concat base-file-name ".cpp"))
-                  (t nil))))
+            (cond
+             ((string-match "\\.cpp" buffer-file-name) (concat base-file-name ".hpp"))
+             ((string-match "\\.hpp" buffer-file-name) (concat base-file-name ".cpp"))
+             ((string-match "\\.c" buffer-file-name) (concat base-file-name ".h"))
+             ((string-match "\\.h" buffer-file-name) (concat base-file-name ".c"))
+             (t nil))))
       (if corresponding-file-name
           (find-file corresponding-file-name)
         (error "Unable to find a corresponding file"))))
@@ -832,7 +872,7 @@ namespace
                    (concat "*.cpp") (concat "*.cs"))))
 
 ;; global keybindings 
-(global-set-key (kbd "C-c c")      (lambda () (interactive) (find-file "~/.emacs.d/init.el")))
+(global-set-key (kbd "C-c C")      (lambda () (interactive) (find-file "~/.emacs.d/init.el")))
 (global-set-key (kbd "M-f")        'find-file)
 (global-set-key (kbd "M-F")        'behiri-find-file-other-window)
 ;;(global-set-key (kbd "M-b")        'ido-switch-buffer)
@@ -899,6 +939,7 @@ namespace
 (global-set-key (kbd "C-c r t")    'string-rectangle)
 (global-set-key (kbd "C-c r k")    'kill-rectangle)
 (global-set-key (kbd "M-m")        'exec-build-bat)
+(global-set-key (kbd "M-n")        'exec-run-bat)
 (global-set-key (kbd "<f6>")       'exec-debug-bat)
 (global-set-key (kbd "<f8>")       'exec-build-bat)
 (global-set-key (kbd "<f9>")       'first-error)
@@ -922,12 +963,12 @@ namespace
 (global-set-key (kbd "C-c C-c")    'comment-or-uncomment-region)
 (global-set-key (kbd "M-p")        'project-find-file)
 (global-set-key (kbd "M-P")        'behiri-project-find-file-in-other-window)
-(global-set-key (kbd "C-v")        'nil)
-(global-set-key (kbd "C-c C-s")    'nil)
+(global-set-key (kbd "C-v")        'forward-char)
+;; (global-set-key (kbd "C-c C-s")    'nil) ;; TODO 
 (global-set-key (kbd "C-c i s")    'insert-signature)
 (global-set-key (kbd "C-c i t")    'insert-timestamp)
 (global-set-key (kbd "C-c i d")    'insert-timeofday)
-(global-set-key (kbd "C-c p")      'behiri-copy-file-path)
+(global-set-key (kbd "C-c M-p")    'behiri-copy-file-path)
 (global-set-key (kbd "C-x F")      'display-fill-column-indicator-mode)
 (global-set-key (kbd "M-1")        'Behiri-shell)
 (global-set-key (kbd "M-3")        'shell-command)
@@ -940,6 +981,9 @@ namespace
 (global-set-key (kbd "C-c m")      'compile)
 (global-set-key (kbd "C-S-<up>")   (lambda () (interactive) (transpose-lines -1)))
 (global-set-key (kbd "C-S-<down>") (lambda () (interactive) (transpose-lines 1)))
+(global-set-key (kbd "C-c c")      'compile)
+(global-set-key (kbd "C-c a")      'recompile)
+(global-set-key (kbd "M-C-f")      'projectile--find-file)
 
 (defun Behiri-shell ()
   (interactive)
