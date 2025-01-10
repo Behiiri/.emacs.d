@@ -10,15 +10,15 @@
 (deftheme beam
   "Dark green theme with light text colors")
 (let ((beam-font         "Liberation Mono") ;; DejaVu Sans Mono
-      (beam-bg           "#040c08")
-      (beam-fg           "#fff176")
-      (beam-bg-lighter   "#081810")
+      (beam-bg           "#001E13") ;; org dark green #040c08
+      (beam-fg           "#f3e5c7") ;; #fff176 mine ;; #E0FFFF like it ;; #FFFACD try it ;; just white #FFFFE0
+      (beam-bg-lighter   "#003E23") 
       (beam-modeline-fg  "#33ff33")
       (beam-highlights   "#113322")
-      (beam-strings      "#FFB000")
-      (beam-functions    "#16d3d2")
-      (beam-keywords     "#ffcc00")
-      (beam-comments     "#439216")
+      (beam-strings      "#FFBB33") ;; org #FFB000
+      (beam-functions    "#30ccff") ;; org #16d3f2
+      (beam-keywords     "#f3e5c7") ;; org #ffcc00
+      (beam-comments     "#30FF60") ;; orginal color #439216
       (beam-black        "#000000")
       (beam-grey         "#888888")
       (beam-dark-green   "#218c23")
@@ -35,10 +35,10 @@
    `beam
    `(default ((t (:background, beam-bg :foreground, beam-fg))))
    `(cursor  ((t (:background, beam-red :weight bold))))
-   `(hl-line ((t (:background, beam-bg-lighter :weight bold))))
+   `(hl-line ((t (:background, beam-bg-lighter :weight normal))))
    `(mode-line ((t (:box nil, :background, beam-bg-lighter  :foreground, beam-modeline-fg) )))
    `(mode-line-inactive ((t (:inherit mode-line :background, beam-bg-lighter :foreground, beam-grey :box nil))))
-   `(region ((t (:background, beam-highlights))))
+   `(region ((t (:background, "#133343"))))
    `(minibuffer-prompt ((t (:foreground, beam-green))))
    '(fixed-pitch ((t (:family beam-font))))
    '(variable-pitch ((t (:family beam-font))))
@@ -48,7 +48,7 @@
    `(font-lock-comment-face ((t (:foreground, beam-comments))))
    `(font-lock-string-face ((t (:foreground, beam-strings))))
    `(font-lock-preprocessor-face ((t (:foreground, beam-strings))))
-   `(font-lock-keyword-face ((t (:foreground, beam-keywords :inherit bold))))
+   `(font-lock-keyword-face ((t (:foreground, beam-keywords)))) ;;  :inherit bold
    `(font-lock-function-name-face ((t (:foreground, beam-functions))))
    `(font-lock-type-face ((t (:inherit default))))
    `(font-lock-doc-face ((t (:foreground, beam-grey))))
@@ -104,7 +104,9 @@
    `(show-paren-match ((t (:foreground, beam-green :weight bold))))
    `(show-paren-mismatch ((t (:foreground, beam-red :weight bold))))
 
-   '(ivy-current-match ((t (:inherit highlight))))
+   `(ivy-current-match ((t (:extend t :background , beam-bg-lighter :weight bold)))) ;; :foreground "#8C5" 
+;;   '(ivy-current-match ((t (:inherit highlight))))
+;;   '(ivy-current-match ((t (:background , beam-light-green :foreground , beam-dark-green))))
    '(ivy-minibuffer-match-face-2 ((t (:inherit isearch :weight bold))))
    
    `(vertical-border ((t (:foreground, beam-bg-lighter))))

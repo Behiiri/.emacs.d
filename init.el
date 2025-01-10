@@ -29,7 +29,6 @@
 (add-to-list 'auto-mode-alist '("\\.cpp\\'" . simpc-mode))
 
 (set-default-coding-systems 'utf-8)
-
 ;; >>> odin
 ;; (package-vc-install "https://git.sr.ht/~mgmarlow/odin-mode")
 ;; Enable odin-mode and configure OLS as the language server
@@ -50,12 +49,18 @@
 
 (add-hook 'odin-mode-hook #'lsp)
 ;; <<< odin
+(use-package ansi-color                 ; Built-in
+  :hook (compilation-filter . ansi-color-compilation-filter))
 
 (use-package compile
   :init
   (progn
-    (setq compilation-scroll-output t)
-    (setq compilation-always-kill t)))
+    (setq compilation-scroll-output nil)
+    (setq compilation-always-kill nil))
+  :commands compile
+  :custom
+  (compilation-ask-about-save nil "don't ask for saves")
+  )
 
 (setq ido-ignore-extensions t)
 (add-to-list 'completion-ignored-extensions ".meta")
@@ -71,7 +76,7 @@
   (("C-s" . swiper)
    ("C-c v" . ivy-push-view)
    ("C-c V" . ivy-pop-view)
-   ("M-SPC" . ivy-switch-view)
+;;   ("M-SPC" . ivy-switch-view)
    ("C-c g" . counsel-git)
    ("C-c j" . counsel-git-grep)
    ("C-c L" . counsel-git-log)
@@ -144,16 +149,16 @@
 (use-package eglot
   :ensure t
 ;  :hook (csharp-mode . eglot-ensure)
-  :bind
-  (("C-c r r" . eglot-rename)
-  ("C-c e f"  . eglot-format)
-  ("C-c e h"  . eglot-help-at-point)
-  ("C-<f12>"  . xref-find-definitions)
-  ("M-<f12>"  . xref-find-definitions-other-window)
-  ("C-c f"    . xref-find-definitions)
-  ("C-c F"    . xref-find-definitions-other-window)
-  ("S-<f12>"  . xref-find-references)
-  ("<f12>"    . xref-find-definitions))
+;;  :bind
+;;  (("C-c r r" . eglot-rename)
+;;  ("C-c e f"  . eglot-format)
+;;  ("C-c e h"  . eglot-help-at-point)
+;;  ("C-<f12>"  . xref-find-definitions)
+;;  ("M-<f12>"  . xref-find-definitions-other-window)
+;;  ("C-c f"    . xref-find-definitions)
+;;  ("C-c F"    . xref-find-definitions-other-window)
+;;  ("S-<f12>"  . xref-find-references)
+;;  ("<f12>"    . xref-find-definitions))
   :init
   (setq eglot-ignored-server-capabilites
         '(:hoverProvider :completionProvider
@@ -224,6 +229,21 @@
   "Exec the build.bat file recursively up to the root directory."
   (interactive)
   (exec-bat-recursively-with-compile (file-name-directory buffer-file-name) "build.bat"))
+
+(defun open-bat-recursively (dir bat-file)
+  "Find and open specified BAT file recursively up to the root directory in another window."
+  (let ((bat-file-path (concat dir bat-file)))
+    (if (file-exists-p bat-file-path)
+        (progn
+          (message "Opening %s file found at: %s" bat-file bat-file-path)
+          (find-file-other-window bat-file-path))  ; Open in another window
+      (when (not (string= dir "/"))
+        (open-bat-recursively (file-name-directory (directory-file-name dir)) bat-file)))))
+
+(defun open-build-bat ()
+  "Open the build.bat file recursively up to the root directory in another window."
+  (interactive)
+  (open-bat-recursively (file-name-directory buffer-file-name) "build.bat"))
 
 (defun exec-run-bat ()
   "Exec the run.bat file recursively up to the root directory."
@@ -570,37 +590,7 @@ ALIST is the option channel for display actions (see `display-buffer')."
 
   ;; Abbrevation expansion
   (abbrev-mode 1)
-
-  (defun behiri-header-format ()
-    "Format the given file as a header file."
-    (interactive)
-    (let ((base-file-name (file-name-sans-extension (file-name-nondirectory buffer-file-name))))
-      (insert (format "#if !defined(%s_H)\n" (upcase base-file-name)))
-      (insert "/* ========================================================================\n")
-      (insert "   $File: $\n")
-      (insert "   $Date: $\n")
-      (insert "   $Revision: $\n")
-      (insert "   $Creator: Behiri $\n")
-      (insert "   $Notice: (C) Copyright 2024 by Behiri! All Rights Reserved. $\n")
-      (insert "   ======================================================================== */\n\n")
-      (insert (format "#define %s_H\n" (upcase base-file-name)))
-      (insert "#endif")))
-
-  (defun behiri-source-format ()
-    "Format the given file as a source file."
-    (interactive)
-      (insert "/* ========================================================================\n")
-      (insert "   $File: $\n")
-      (insert "   $Date: $\n")
-      (insert "   $Revision: $\n")
-      (insert "   $Creator: Behiri $\n")
-      (insert "   $Notice: (C) Copyright 2024 by Behiri! All Rights Reserved. $\n")
-      (insert "   ======================================================================== */\n"))
-
-  (cond ((file-exists-p buffer-file-name) t)
-      ((string-match "[.]cs\\ |[.]h"            buffer-file-name) (behiri-header-format))
-      ((string-match "[.]hin\\|[.]cin\\|[.]cpp" buffer-file-name) (behiri-source-format)))
-
+  
   (defun open-corresponding-file ()
     "Open the corresponding header/source file for C/C++."
     (interactive)
@@ -623,8 +613,13 @@ ALIST is the option channel for display actions (see `display-buffer')."
     (open-corresponding-file)
     (other-window -1))
 
+  (define-key c-mode-map [f12] 'open-corresponding-file)
+  (define-key c-mode-map [M-f12] 'open-corresponding-file-other-window)
+  (define-key c-mode-map [S-f12] 'open-corresponding-file-other-window)
+  
   (define-key c++-mode-map [f12] 'open-corresponding-file)
   (define-key c++-mode-map [M-f12] 'open-corresponding-file-other-window)
+  (define-key c++-mode-map [S-f12] 'open-corresponding-file-other-window)
   (define-key c++-mode-map (kbd "M-e") 'open-corresponding-file)
   (define-key c++-mode-map (kbd "M-E") 'open-corresponding-file-other-window)
   (define-key c++-mode-map (kbd "M-s") 'behiri-save-buffer)
@@ -749,10 +744,10 @@ namespace
       (cons '("^\\([0-9]+>\\)?\\(\\(?:[a-zA-Z]:\\)?[^:(\t\n]+\\)(\\([0-9]+\\)) : \\(?:fatal error\\|warnin\\(g\\)\\) C[0-9]+:" 2 3 nil (4))
             compilation-error-regexp-alist))
 
-;; Commands
-(set-variable 'grep-command "findstr -s -n -i -l \"\" -d .\\. *.c *.h *.cs")
-(set-variable 'grep-command-position 22)
-(setq counsel-grep-base-command "findstr -s -n -i -l \"%s\" *.c *.h *.cs")
+;; Command ;;  *.c *.h *.cpp *.hpp *.cs
+(set-variable 'grep-command "findstr -s -n -i -l -C:\"\" *.*")
+(set-variable 'grep-command-position 25)
+(setq counsel-grep-base-command  "findstr -s -n -i -l -C:\"\" *.*")
 
 ;; Smooth scroll
 (setq scroll-step 1) ;; 3
@@ -919,7 +914,7 @@ namespace
 (global-set-key (kbd "<next>")     'scroll-up-command)
 (global-set-key (kbd "C-<next>")   'scroll-other-window)
 (global-set-key (kbd "C-<prior>")  'scroll-other-window-down)
-(global-set-key (kbd "M-v")        'pop-to-mark-command)
+;; (global-set-key (kbd "M-v")        'pop-to-mark-command)
 (global-set-key (kbd "M-q")        'append-as-kill)
 (global-set-key (kbd "M-z")        'suspend-frame)
 (global-set-key (kbd "M-<right>")  'forward-word)
@@ -959,6 +954,7 @@ namespace
 (global-set-key (kbd "C-c r t")    'string-rectangle)
 (global-set-key (kbd "C-c r k")    'kill-rectangle)
 (global-set-key (kbd "M-m")        'exec-build-bat)
+(global-set-key (kbd "M-M")        'open-build-bat)
 (global-set-key (kbd "M-n")        'exec-run-bat)
 (global-set-key (kbd "<f6>")       'exec-debug-bat)
 (global-set-key (kbd "<f8>")       'exec-build-bat)
