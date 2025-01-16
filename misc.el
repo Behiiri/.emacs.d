@@ -145,13 +145,13 @@
     (insert "   $Author: Behiri$\n")
     (insert "   $Notice: (C) Copyright 2025 by Behiri! All Rights Reserved.$\n")
     (insert "   ======================================================================== */\n\n")
-    (insert (format "%s::%s()  { clear(); };\n" class-name class-name))
-    (insert (format "%s::~%s() { destroy(); };\n\n" class-name class-name))
-    (insert (format "void %s::clear() {};\n" class-name))
-    (insert (format "bool %s::create() { return true; };\n" class-name))
-    (insert (format "void %s::update() {};\n" class-name))
+    (insert (format "%s::%s()  { clear(); }\n" class-name class-name))
+    (insert (format "%s::~%s() { destroy(); }\n\n" class-name class-name))
+    (insert (format "void %s::clear() {}\n" class-name))
+    (insert (format "bool %s::create() { return true; }\n" class-name))
+    (insert (format "void %s::update() {}\n" class-name))
     (insert (format "void %s::destroy()\n" class-name))
-    (insert (format "{\n    clear();\n};" class-name))
+    (insert (format "{\n    clear();\n}" class-name))
     ))
 
 (defun behiri-insert-format ()
@@ -162,3 +162,13 @@
         ))
 
 (add-hook 'find-file-hook 'behiri-insert-format)
+
+(defun goto-matching-brace ()
+  "Move the cursor to the matching closing brace (})."
+  (interactive)
+  (let ((pos (point)))
+    (if (search-forward "}" nil t)
+        (backward-char)
+      (goto-char pos))))
+
+(global-set-key (kbd "C-c m") 'goto-matching-brace)
