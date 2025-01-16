@@ -105,7 +105,7 @@
     ))
 
 (defun behiri-cpp-header-format ()
-  "Insert a C++ class definition using the file name as the class name."
+  "Insert defualt C++ header format"
   (interactive)
   (let* ((file-name (file-name-nondirectory (buffer-file-name)))
          (class-name (file-name-sans-extension file-name))
@@ -132,7 +132,7 @@
     ))
 
 (defun behiri-cpp-source-format ()
-  "Format the given file as a source file."
+  "Insert defualt C++ source format"
   (interactive)
   (let* ((file-name (file-name-nondirectory (buffer-file-name)))
          (class-name (file-name-sans-extension file-name))
@@ -154,14 +154,36 @@
     (insert (format "{\n    clear();\n}" class-name))
     ))
 
+(defun behiri-cs-file-format ()
+  "Insert defualt C# file format"
+  (interactive)
+    (let* ((file-name (file-name-nondirectory (buffer-file-name)))
+           (class-name (file-name-sans-extension file-name))
+           (class-name (capitalize (downcase class-name)))
+           (current-date (format-time-string "%Y-%m-%d")))
+      (insert "/* ========================================================================\n")
+      (insert (format "   $File: %s$\n" file-name))
+      (insert (format "   $Date: %s$\n" current-date))
+      (insert "   $Revision: 1$\n")
+      (insert "   $Author: Behiri$\n")
+      (insert "   $Notice: (C) Copyright 2025 by Behiri! All Rights Reserved.$\n")
+      (insert "   ======================================================================== */\n\n")
+      (insert (format "using UnityEngine;\n\n"))
+      (insert (format "namespace name_space\n{\n"))
+      (insert (format "    public class %s : MonoBehaviour\n" class-name))
+      (insert (format "    {\n    }\n}" class-name))    
+      ))
+
 (defun behiri-insert-format ()
   (cond ((file-exists-p buffer-file-name) t)
-        ((string-match "[.]hpp\\|[.]hxx"   buffer-file-name) (behiri-cpp-header-format))
-        ((string-match "[.]cpp\\|[.]cxx"   buffer-file-name) (behiri-cpp-source-format))
-        ((string-match "[.]c\\|[.]h\\|[.]cs" buffer-file-name) (behiri-header-format))
+        ((string-match "[.]hpp\\|[.]hxx" buffer-file-name) (behiri-cpp-header-format))
+        ((string-match "[.]cpp\\|[.]cxx" buffer-file-name) (behiri-cpp-source-format))
+        ((string-match "[.]c\\|[.]h"     buffer-file-name) (behiri-header-format))
+        ((string-match "[.]cs"           buffer-file-name) (behiri-cs-file-format))
         ))
 
 (add-hook 'find-file-hook 'behiri-insert-format)
+
 
 (defun goto-matching-brace ()
   "Move the cursor to the matching closing brace (})."

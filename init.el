@@ -672,24 +672,6 @@ ALIST is the option channel for display actions (see `display-buffer')."
 
 (add-hook 'csharp-mode-hook 'behiri-csharp-mode-hook)
 
-;;; Define a function to insert a Unity script class structure with dynamic class name
-(defun insert-unity-script ()
-  (when (and (string= (file-name-extension buffer-file-name) "cs")
-             (zerop (buffer-size)))
-    (let ((class-name (file-name-sans-extension (file-name-nondirectory buffer-file-name))))
-      (insert (format
-               "using UnityEngine;
-
-namespace
-{
-    public class %s : MonoBehaviour
-    {
-    }
-}
-" class-name)))))
-
-(add-hook 'find-file-hook 'insert-unity-script)
-
 ;;; recenter the cursor vertically
 (add-hook 'server-switch-hook (lambda () (recenter)))
 (setq scroll-conservatively 21)
@@ -697,7 +679,7 @@ namespace
 
 ;;; Enable yank-advised-indent
 (defadvice yank (after indent-region activate)
-  (if (member major-mode '(emacs-lisp-mode lisp-mode csharp-mode  c-mode c++-mode plain-tex-mode))
+  (if (member major-mode '(emacs-lisp-mode lisp-mode csharp-mode c-mode c++-mode plain-tex-mode))
       (indent-region (region-beginning) (region-end))))
 
 
@@ -795,7 +777,6 @@ namespace
 (setq split-width-threshold 1) ;; nil = split to top and down |  1 = split to right and left
 (setq-default fill-column 95)
 (setq display-line-numbers-width 3)
-
 (setq dabbrev-case-replace nil)
 (setq dabbrev-case-fold-search nil)
 (setq visible-bell t)
@@ -837,7 +818,7 @@ namespace
    (string-to-number
     (read-string "Font size: " (number-to-string (face-attribute 'default :height nil))))))
 
-;;; background color
+;: color Cycling
 (defun behiri-cycle-background-color ()
   (let ((color-index 0)
         (colors '("#072228" "#072822" "#2A282A" "#090909"
@@ -845,7 +826,6 @@ namespace
                   "#22212C" "#1E1D2D" "#181818" "#0D1712"
                   "#100E05" "#2A241D" "#1A140D"
                   )))
-    ;; crt greens     "#223229" "#17221C" "#16231C"  "#1A2821"
     
     (lambda ()
       (interactive)
@@ -860,7 +840,6 @@ namespace
         (redraw-display)))))
 
 
-;;; foreground color
 (defun behiri-cycle-foreground-color ()
   (let ((color-index 0)
         (colors '("#bbff88" "#fff176" "#f5f5f5" "#20C16D" "#90ee90"
@@ -884,6 +863,7 @@ namespace
          (new-b (min (+ b (* 255 factor)) 255)))
     (format "#%02X%02X%02X" new-r new-g new-b)))
 
+;; baregreping
 (defun search-with-baregrep ()
   "Prompt for a search string and use BareGrep to search in the specified path."
   (interactive)
@@ -893,7 +873,15 @@ namespace
                    (concat "*.c")   (concat "*.h")
                    (concat "*.cpp") (concat "*.cs"))))
 
+;; Shell mode customizations
+(defun Behiri-shell ()
+  (interactive)
+  (split-window-vertically (floor (* 0.66 (window-height))))
+  (shell)
+  (swap-window-positions))
+(add-hook 'shell-mode-hook 'comint-mode)
 
+;; curly-brace navigations
 (defun goto-previous-curly-brace-begin ()
   (interactive)
   (let ((found (search-backward "{" nil t)))))
@@ -910,133 +898,132 @@ namespace
   (interactive)
   (let ((found (search-forward "{" nil t)))))
 
-;; global keybindings 
-(global-set-key (kbd "C-c C")        (lambda () (interactive) (find-file "~/.emacs.d/init.el")))
-(global-set-key (kbd "M-f")          'find-file)
-(global-set-key (kbd "M-F")          'behiri-find-file-other-window)
-;;(global-set-key (kbd "M-b")          'ido-switch-buffer)
-;;(global-set-key (kbd "M-B")          'ido-switch-buffer-other-window)
-(global-set-key (kbd "M-b")          'counsel-ibuffer)
-(global-set-key (kbd "M-B")          'ibuffer-other-window)
-(global-set-key (kbd "M-c")          'behiri-change-buffer)
-(global-set-key (kbd "M-C")          'behiri-change-buffer-other-window)
-(global-set-key (kbd "M-t")          'load-todo)
-(global-set-key (kbd "M-T")          'load-log)
-(global-set-key (kbd "M-w")          'other-window)
-(global-set-key (kbd "M-2")          'swap-window-positions)
-(global-set-key (kbd "C-<right>")    'forward-word)
-(global-set-key (kbd "C-<left>")     'backward-word)
-(global-set-key (kbd "C-<up>")       'backward-paragraph)
-(global-set-key (kbd "M-<up>")       'backward-paragraph)
-(global-set-key (kbd "C-<down>")     'forward-paragraph)
-(global-set-key (kbd "M-<down>")     'forward-paragraph)
-(global-set-key (kbd "<home>")       'beginning-of-line)
-(global-set-key (kbd "<end>")        'end-of-line)
-(global-set-key (kbd "C-<home>")     'move-beginning-of-line)
-(global-set-key (kbd "C-<end>")      'move-end-of-line)
-(global-set-key (kbd "<prior>")      'scroll-down-command)
-(global-set-key (kbd "<next>")       'scroll-up-command)
-(global-set-key (kbd "C-<next>")     'scroll-other-window)
-(global-set-key (kbd "C-<prior>")    'scroll-other-window-down)
-;; (global-set-key (kbd "M-v")          'pop-to-mark-command)
-(global-set-key (kbd "M-q")          'append-as-kill)
-(global-set-key (kbd "M-z")          'suspend-frame)
-(global-set-key (kbd "<mouse-3>")    'suspend-frame)
-(global-set-key (kbd "M-<right>")    'forward-word)
-(global-set-key (kbd "M-<left>")     'backward-word)
-(global-set-key (kbd "M-:")          'View-back-to-mark)
-(global-set-key (kbd "M-n")          'next-error)
-(global-set-key (kbd "M-N")          'previous-error)
-(global-set-key (kbd "M-g")          'goto-line)
-(global-set-key (kbd "M-j")          'imenu)
-(global-set-key (kbd "M-u")          'undo)
-(global-set-key (kbd "M-6")          'upcase-word)
-(global-set-key (kbd "M-^")          'capitalize-word)
-(global-set-key (kbd "M-.")          'fill-paragraph)
-(global-set-key (kbd "M-l")          'behiri-replace-in-region)
-(global-set-key (kbd "M-o")          'query-replace)
-(global-set-key (kbd "M-O")          'behiri-replace-string)
-(global-set-key (kbd "M-<delete>")   'kill-word)
-(global-set-key (kbd "M-[")          'start-kbd-macro)
-(global-set-key (kbd "M-]")          'end-kbd-macro)
-(global-set-key (kbd "M-'")          'call-last-kbd-macro)
-(global-set-key (kbd "M-r")          'revert-buffer)
-(global-set-key (kbd "M-k")          'kill-current-buffer)
-(global-set-key (kbd "M-K")          'kill-all-buffers)
-(global-set-key (kbd "M-s")          'behiri-save-buffer)
-(global-set-key (kbd "M-S")          'behiri-save-all-buffers)
-(global-set-key (kbd "<tab>")        'dabbrev-expand)
-(global-set-key (kbd "S-<tab>")      'indent-for-tab-command)
-(global-set-key (kbd "<backtab>")    'indent-for-tab-command)
-(global-set-key (kbd "C-<tab>")      'indent-region)
-(global-set-key (kbd "C-z")          'undo)
-(global-set-key (kbd "C-f")          'yank)
-(global-set-key (kbd "C-S-f")        'counsel-yank-pop) 
-(global-set-key (kbd "C-q")          'kill-ring-save)
-(global-set-key (kbd "<escape>")     'keyboard-escape-quit)
-(global-set-key (kbd "C-c e r")      'eval-region)
-(global-set-key (kbd "C-c e b")      'eval-buffer)
-(global-set-key (kbd "C-c r t")      'string-rectangle)
-(global-set-key (kbd "C-c r k")      'kill-rectangle)
-(global-set-key (kbd "M-m")          'exec-build-bat)
-(global-set-key (kbd "M-M")          'open-build-bat)
-(global-set-key (kbd "M-n")          'exec-run-bat)
-(global-set-key (kbd "<f6>")         'exec-debug-bat)
-(global-set-key (kbd "<f8>")         'exec-build-bat)
-(global-set-key (kbd "<f9>")         'first-error)
-(global-set-key (kbd "<f10>")        'previous-error)
-(global-set-key (kbd "<f11>")        'next-error)
-(global-set-key (kbd "C-0")          'delete-window)
-(global-set-key (kbd "C-1")          'delete-other-windows)
-(global-set-key (kbd "C-2")          'split-window-below)
-(global-set-key (kbd "C-3")          'split-window-right)
-(global-set-key (kbd "C-4")          'next-error)
-(global-set-key (kbd "C-<f11>")      'toggle-frame-fullscreen)
-(global-set-key (kbd "<insert>")     'yank)
-(global-set-key (kbd "S-<insert>")   'counsel-yank-pop)
-(global-set-key (kbd "C-<insert>")   'overwrite-mode)
-(global-set-key (kbd "C-=")          'enlarge-window-horizontally)
-(global-set-key (kbd "C--")          'shrink-window-horizontally)
-(global-set-key (kbd "C-<f5>")       (behiri-cycle-background-color))
-(global-set-key (kbd "C-<f6>")       (behiri-cycle-foreground-color))
-(global-set-key (kbd "C-c s")        'grep)
-(global-set-key (kbd "C-c S")        'counsel-grep)
-(global-set-key (kbd "C-c C-c")      'comment-or-uncomment-region)
-(global-set-key (kbd "M-p")          'project-find-file)
-(global-set-key (kbd "M-P")          'behiri-project-find-file-in-other-window)
-(global-set-key (kbd "C-v")          'forward-char)
-;; (global-set-key (kbd "C-c C-s")      'nil) ;; TODO 
-(global-set-key (kbd "C-c i s")      'insert-signature)
-(global-set-key (kbd "C-c i t")      'insert-timestamp)
-(global-set-key (kbd "C-c i d")      'insert-timeofday)
-(global-set-key (kbd "C-c M-p")      'behiri-copy-file-path)
-(global-set-key (kbd "C-x F")        'display-fill-column-indicator-mode)
-(global-set-key (kbd "M-1")          'Behiri-shell)
-(global-set-key (kbd "M-3")          'shell-command)
-(global-set-key (kbd "`")            'Behiri-shell)
-(global-set-key (kbd "C-,")          'beginning-of-buffer)
-(global-set-key (kbd "C-.")          'end-of-buffer)
-(global-set-key (kbd "C-c l")        'global-display-line-numbers-mode)
-(global-set-key (kbd "C-S-s")        'search-with-baregrep)
-(global-set-key (kbd "C-S-d")        'duplicate-line)
-(global-set-key (kbd "C-c m")        'compile)
-(global-set-key (kbd "C-S-<up>")     (lambda () (interactive) (transpose-lines -1)))
-(global-set-key (kbd "C-S-<down>")   (lambda () (interactive) (transpose-lines 1)))
-(global-set-key (kbd "C-c c")        'compile)
-(global-set-key (kbd "C-c a")        'recompile)
-(global-set-key (kbd "M-C-f")        'projectile--find-file)
+;; Global Keybindings
+;; File operations
+(global-set-key (kbd "C-c C") (lambda () (interactive) (find-file "~/.emacs.d/init.el")))
+(global-set-key (kbd "M-f") 'find-file)
+(global-set-key (kbd "M-F") 'behiri-find-file-other-window)
+(global-set-key (kbd "M-b") 'counsel-ibuffer)
+(global-set-key (kbd "M-B") 'ibuffer-other-window)
+(global-set-key (kbd "M-c") 'behiri-change-buffer)
+(global-set-key (kbd "M-C") 'behiri-change-buffer-other-window)
+(global-set-key (kbd "M-t") 'load-todo)
+(global-set-key (kbd "M-T") 'load-log)
+(global-set-key (kbd "M-n") 'next-error)
+(global-set-key (kbd "M-N") 'previous-error)
+(global-set-key (kbd "M-g") 'goto-line)
+(global-set-key (kbd "M-j") 'imenu)
+(global-set-key (kbd "M-o") 'query-replace)
+(global-set-key (kbd "M-O") 'behiri-replace-string)
+(global-set-key (kbd "M-k") 'kill-current-buffer)
+(global-set-key (kbd "M-K") 'kill-all-buffers)
+(global-set-key (kbd "M-s") 'behiri-save-buffer)
+(global-set-key (kbd "M-S") 'behiri-save-all-buffers)
+
+;; Window management
+(global-set-key (kbd "M-w") 'other-window)
+(global-set-key (kbd "M-2") 'swap-window-positions)
+(global-set-key (kbd "C-0") 'delete-window)
+(global-set-key (kbd "C-1") 'delete-other-windows)
+(global-set-key (kbd "C-2") 'split-window-below)
+(global-set-key (kbd "C-3") 'split-window-right)
+(global-set-key (kbd "C-<right>") 'forward-word)
+(global-set-key (kbd "C-<left>")  'backward-word)
+(global-set-key (kbd "C-<up>")    'backward-paragraph)
+(global-set-key (kbd "C-<down>")  'forward-paragraph)
+(global-set-key (kbd "C-<f11>")   'toggle-frame-fullscreen)
+
+;; Text navigation
+(global-set-key (kbd "<home>")    'beginning-of-line)
+(global-set-key (kbd "<end>")     'end-of-line)
+(global-set-key (kbd "C-<home>")  'move-beginning-of-line)
+(global-set-key (kbd "C-<end>")   'move-end-of-line)
+(global-set-key (kbd "<prior>")   'scroll-down-command)
+(global-set-key (kbd "<next>")    'scroll-up-command)
+(global-set-key (kbd "C-<next>")  'scroll-other-window)
+(global-set-key (kbd "C-<prior>") 'scroll-other-window-down)
+(global-set-key (kbd "C-v")       'forward-char)
+
+;; Editing commands
+(global-set-key (kbd "C-z")   'undo)
+(global-set-key (kbd "C-f")   'yank)
+(global-set-key (kbd "C-S-f") 'counsel-yank-pop)
+(global-set-key (kbd "C-q")   'kill-ring-save)
+(global-set-key (kbd "M-6")   'upcase-word)
+(global-set-key (kbd "M-^")   'capitalize-word)
+(global-set-key (kbd "M-.")   'fill-paragraph)
+(global-set-key (kbd "M-[")   'start-kbd-macro)
+(global-set-key (kbd "M-]")   'end-kbd-macro)
+(global-set-key (kbd "M-'")   'call-last-kbd-macro)
+(global-set-key (kbd "C-,")   'beginning-of-buffer)
+(global-set-key (kbd "C-.")   'end-of-buffer)
+
+;; Rectangle operations
+(global-set-key (kbd "C-c r t") 'string-rectangle)
+(global-set-key (kbd "C-c r k") 'kill-rectangle)
+
+;; Compilation and build commands
+(global-set-key (kbd "C-c m") 'compile)
+(global-set-key (kbd "C-c a") 'recompile)
+(global-set-key (kbd "M-m")   'exec-build-bat)
+(global-set-key (kbd "M-M")   'open-build-bat)
+(global-set-key (kbd "M-n")   'exec-run-bat)
+(global-set-key (kbd "<f6>")  'exec-debug-bat)
+(global-set-key (kbd "<f8>")  'exec-build-bat)
+
+;; Error navigation
+(global-set-key (kbd "<f9>")  'first-error)
+(global-set-key (kbd "<f10>") 'previous-error)
+(global-set-key (kbd "<f11>") 'next-error)
+
+;; Mouse and clipboard operations
+(global-set-key (kbd "<mouse-3>")  'suspend-frame)
+(global-set-key (kbd "<insert>")   'yank)
+(global-set-key (kbd "S-<insert>") 'counsel-yank-pop)
+(global-set-key (kbd "C-<insert>") 'overwrite-mode)
+
+;; Window resizing
+(global-set-key (kbd "C-=") 'enlarge-window-horizontally)
+(global-set-key (kbd "C--") 'shrink-window-horizontally)
+
+;; Color cycling
+(global-set-key (kbd "C-<f5>") 'behiri-cycle-background-color)
+(global-set-key (kbd "C-<f6>") 'behiri-cycle-foreground-color)
+
+;; Grep and search
+(global-set-key (kbd "C-c s") 'grep)
+(global-set-key (kbd "C-c S") 'counsel-grep)
+
+;; Commenting
+(global-set-key (kbd "C-c C-c") 'comment-or-uncomment-region)
+
+;; Project management
+(global-set-key (kbd "M-p") 'project-find-file)
+(global-set-key (kbd "M-P") 'behiri-project-find-file-in-other-window)
+
+;; Miscellaneous
+(global-set-key (kbd "C-c i s") 'insert-signature)
+(global-set-key (kbd "C-c i t") 'insert-timestamp)
+(global-set-key (kbd "C-c i d") 'insert-timeofday)
+(global-set-key (kbd "C-c M-p") 'behiri-copy-file-path)
+(global-set-key (kbd "C-x F")   'display-fill-column-indicator-mode)
+(global-set-key (kbd "M-3")     'shell-command)
+(global-set-key (kbd "M-1")     'Behiri-shell)
+(global-set-key (kbd "`")       'Behiri-shell)
+
+;; Line manipulation
+(global-set-key (kbd "C-S-s") 'search-with-baregrep)
+(global-set-key (kbd "C-S-d") 'duplicate-line)
+(global-set-key (kbd "C-S-<up>")   (lambda () (interactive) (transpose-lines -1)))
+(global-set-key (kbd "C-S-<down>") (lambda () (interactive) (transpose-lines 1)))
+
+;; Curly brace navigation
 (global-set-key (kbd "C-M-<up>")     'goto-previous-curly-brace-begin)
 (global-set-key (kbd "C-M-<down>")   'goto-next-curly-brace-end)
 (global-set-key (kbd "C-M-S-<up>")   'goto-previous-curly-brace-end)
 (global-set-key (kbd "C-M-S-<down>") 'goto-next-curly-brace-begin)
 
-(defun Behiri-shell ()
-  (interactive)
-  (split-window-vertically (floor (* 0.66 (window-height))))
-  (shell)
-  (swap-window-positions))
-
-(add-hook 'shell-mode-hook 'comint-mode)
+;; comint-mode keybindings
 (define-key comint-mode-map (kbd "M-<backspace>") 'comint-kill-input)
 (define-key comint-mode-map (kbd "`") 'delete-window)
 (define-key comint-mode-map (kbd "M-1") 'delete-window)
