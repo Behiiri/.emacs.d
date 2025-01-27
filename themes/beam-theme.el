@@ -33,9 +33,9 @@
 
   (custom-theme-set-faces
    `beam
-   `(default ((t (:background, beam-bg :foreground, beam-fg))))
+   `(default ((t (:background, beam-bg :foreground, beam-fg :height 113))))
    `(cursor  ((t (:background, beam-red :weight bold))))
-   `(hl-line ((t (:background, beam-bg-lighter :weight normal))))
+   `(hl-line ((t (:background, "#103828" :weight normal))))
    `(mode-line ((t (:box nil, :background, beam-bg-lighter  :foreground, beam-modeline-fg) )))
    `(mode-line-inactive ((t (:inherit mode-line :background, beam-bg-lighter :foreground, beam-grey :box nil))))
    `(region ((t (:background, "#133343"))))
