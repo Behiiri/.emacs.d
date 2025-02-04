@@ -4,7 +4,7 @@
 (setq gc-cons-threshold (* 50 1000 1000))
 
 (setq custom-file "~/.emacs.d/custom.el")
-(setq misc-file "~/.emacs.d/misc.el")
+(setq misc-file   "~/.emacs.d/misc.el")
 
 ;; Profile emacs startup
 (add-hook 'emacs-startup-hook
@@ -55,14 +55,54 @@
   :hook (compilation-filter . ansi-color-compilation-filter))
 
 (use-package compile
-  :init
-  (progn
-    (setq compilation-scroll-output nil)
-    (setq compilation-always-kill nil))
   :commands compile
-  :custom
-  (compilation-ask-about-save nil "don't ask for saves")
+  :init
+
+  (setq compilation-scroll-output nil          ; 'first-error
+        compilation-always-kill t              ; Kill previous compilation automatically
+        compilation-auto-jump-to-first-error t ; Jump to first error automatically
+        compilation-skip-threshold 2           ; Skip warnings during navigation
+        compilation-ask-about-save nil         ; Save all buffers without asking
+        compilation-window-height 0.3)         ; Set default window height
+
+  ;; ANSI color support in compilation buffers
+  (require 'ansi-color)
+  (defun colorize-compilation-buffer ()
+    (when (eq major-mode 'compilation-mode)
+      (ansi-color-apply-on-region (point-min) (point-max))))
+  (add-hook 'compilation-filter-hook #'colorize-compilation-buffer)
+
+  ;; ;; Better window management
+  ;; (setq display-buffer-alist
+  ;;       `(("\\*compilation\\*"
+  ;;          (display-buffer-reuse-window
+  ;;           display-buffer-in-side-window)
+  ;;          (side . right)
+  ;;          (window-height . ,compilation-window-height)
+  ;;          (window-parameters . ((no-other-window . t))))))
   )
+ 
+  ;; Keybindings for navigation
+  (with-eval-after-load 'compile
+    (define-key compilation-mode-map (kbd "n") 'next-error-no-select)
+    (define-key compilation-mode-map (kbd "p") 'previous-error-no-select)
+    (define-key compilation-mode-map (kbd "M-q") 'quit-window))
+
+;; Function to switch to compilation buffer
+(defun my-switch-to-compilation-buffer ()
+  "Switch to the *compilation* buffer if it exists."
+  (interactive)
+  (let ((compilation-buffer (get-buffer "*compilation*")))
+    (if compilation-buffer
+        (pop-to-buffer compilation-buffer
+                       ;; Respect your existing window configuration
+                       (cons 'display-buffer-reuse-window
+                             '((in-side-window . right)
+                               (window-height . 0.3))))
+      (message "No compilation buffer found"))))
+
+(global-set-key (kbd "C-c q")  'my-switch-to-compilation-buffer)
+(global-set-key (kbd "M-q")    'my-switch-to-compilation-buffer)
 
 (setq ido-ignore-extensions t)
 (add-to-list 'completion-ignored-extensions ".meta")
@@ -191,17 +231,64 @@
           ))
   (setq org-todo-keyword-faces
         '(
-          ("TODO"       . (:foreground "GoldenRod"   :weight bold))
-          ("INSPECT"    . (:foreground "SlateBlue"   :weight bold))
-          ("INPROGRESS" . (:foreground "DodgerBlue"  :weight bold))
-          ("DONE"       . (:foreground "LimeGreen"   :weight bold))
-          ("FIXED"      . (:foreground "LimeGreen"   :weight bold))
-          ("VERIFY"     . (:foreground "DarkGreen"   :weight bold))
-          ("DEFERRED"   . (:foreground "GreenYellow" :weight bold))
-          ("CANCELLED"  . (:foreground "Red"         :weight bold))
-          ("INVALID"    . (:foreground "DarkRed"     :weight bold))
+          ("TODO"       . (:foreground "GoldenRod"  ))
+          ("INSPECT"    . (:foreground "SlateBlue"  ))
+          ("INPROGRESS" . (:foreground "DodgerBlue" ))
+          ("DONE"       . (:foreground "LimeGreen"  ))
+          ("FIXED"      . (:foreground "LimeGreen"  ))
+          ("VERIFY"     . (:foreground "DarkGreen"  ))
+          ("DEFERRED"   . (:foreground "GreenYellow"))
+          ("CANCELLED"  . (:foreground "Red"        ))
+          ("INVALID"    . (:foreground "DarkRed"    ))
           ))
-  (add-hook 'org-mode-hook 'org-indent-mode))
+  
+  (font-lock-add-keywords 'org-mode
+                          '(("^ *\\([-]\\) "
+                             (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+  (use-package org-bullets
+    :config
+    (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
+
+  (let* ((variable-tuple
+          (cond ((x-list-fonts "Liberation sans") '(:font "Liberation sans"))
+                ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
+                ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
+                ((x-list-fonts "Verdana")         '(:font "Verdana"))
+                ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
+                (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))))
+         (base-font-color     (face-foreground 'default nil 'default))
+         (headline           `(:inherit default :weight regular :foreground ,base-font-color)))
+    
+    (custom-theme-set-faces
+     'user
+     ;; Set colors and heights for org-level faces
+     `(org-level-1 ((t (,@headline ,@variable-tuple :foreground "#ffcc00" :height 1.75))))
+     `(org-level-2 ((t (,@headline ,@variable-tuple :foreground "#66ff66" :height 1.5))))
+     `(org-level-3 ((t (,@headline ,@variable-tuple :foreground "#00ccff" :height 1.25))))
+     `(org-level-4 ((t (,@headline ,@variable-tuple :foreground "#ffff88" :height 1.1))))
+     `(org-level-5 ((t (,@headline ,@variable-tuple :foreground "#ff9966"))))
+     `(org-level-6 ((t (,@headline ,@variable-tuple :foreground "#cccccc"))))
+     `(org-level-7 ((t (,@headline ,@variable-tuple :foreground "#ffccff"))))
+     `(org-level-8 ((t (,@headline ,@variable-tuple))))
+     `(org-document-title ((t (,@headline ,@variable-tuple :height 2.0 :underline nil :foreground "#ffffff"))))
+     )
+    (custom-theme-set-faces
+     'user
+     '(org-block ((t (:inherit fixed-pitch))))
+     '(org-code ((t (:inherit (shadow fixed-pitch)))))
+     '(org-document-info ((t (:foreground "dark orange"))))
+     '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
+     '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
+     '(org-link ((t (:foreground "royal blue" :underline t))))
+     '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+     '(org-property-value ((t (:inherit fixed-pitch))) t)
+     '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+     '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
+     '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
+     '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
+    )
+
+    (add-hook 'org-mode-hook 'org-indent-mode))
 
 (setq completion-ignored-extensions
       (append completion-ignored-extensions
@@ -230,7 +317,9 @@
 (defun exec-build-bat ()
   "Exec the build.bat file recursively up to the root directory."
   (interactive)
-  (exec-bat-recursively-with-compile (file-name-directory buffer-file-name) "build.bat"))
+  (exec-bat-recursively-with-compile (file-name-directory buffer-file-name) "build.bat")
+  ;;(select-window-by-buffer-name "*compilation*")
+  )
 
 (defun open-bat-recursively (dir bat-file)
   "Find and open specified BAT file recursively up to the root directory in another window."
@@ -619,7 +708,8 @@ ALIST is the option channel for display actions (see `display-buffer')."
     (interactive)
     (find-file-other-window buffer-file-name)
     (open-corresponding-file)
-    (other-window -1))
+    (other-window))
+  
 
   (define-key c-mode-map [f12] 'open-corresponding-file)
   (define-key c-mode-map [M-f12] 'open-corresponding-file-other-window)
@@ -638,7 +728,7 @@ ALIST is the option channel for display actions (see `display-buffer')."
   (define-key c++-mode-map (kbd "M-j") 'imenu)
   (define-key c++-mode-map (kbd "M-.") 'c-fill-paragraph)
   (define-key c++-mode-map (kbd "M-/") 'c-mark-function)
-  (define-key c++-mode-map (kbd "M-q") 'append-as-kill)
+;;  (define-key c++-mode-map (kbd "M-q") 'append-as-kill)
   (define-key c++-mode-map (kbd "M-a") 'yank)
   (define-key c++-mode-map (kbd "C-c C-c") 'comment-or-uncomment-region)
   
@@ -874,12 +964,44 @@ ALIST is the option channel for display actions (see `display-buffer')."
                    (concat "*.c")   (concat "*.h")
                    (concat "*.cpp") (concat "*.cs"))))
 
-;; Shell mode customizations
+(defun select-window-by-buffer-name (buffer-name)
+  "Select the window displaying the buffer with BUFFER-NAME."
+  (interactive "sBuffer name: ")
+  (let ((window (get-buffer-window buffer-name)))
+    (if window
+        (select-window window)
+      (message "No window displaying buffer: %s" buffer-name))))
+
 (defun Behiri-shell ()
   (interactive)
-  (split-window-vertically (floor (* 0.66 (window-height))))
-  (shell)
-  (swap-window-positions))
+  (let ((current-window (selected-window))
+        (shell-buffer (get-buffer "*shell*")))
+    
+    (if (and shell-buffer (get-buffer-window shell-buffer))
+        ;; If shell buffer is already visible, just switch to it
+        (select-window (get-buffer-window shell-buffer))
+
+      
+      ;; Otherwise, create or reuse the shell buffer
+      (let
+          ((old-buffer (current-buffer))
+            
+           (new-buffer (or shell-buffer (shell))))
+        (display-buffer new-buffer
+                        '((display-buffer-in-side-window)
+                          (side . bottom)
+                          (slot . 1)
+                          (window-width . 0.4)
+                          (window-parameters (no-other-window . nil)
+                                             (select . nil))))
+
+        (switch-to-buffer old-buffer)
+        ;; Ensure original window stays selected
+        (select-window current-window))))
+  
+  (select-window-by-buffer-name "*shell*")
+  (end-of-line))
+
 (add-hook 'shell-mode-hook 'comint-mode)
 
 ;; curly-brace navigations
@@ -925,7 +1047,7 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (global-set-key (kbd "<next>")       'scroll-up-command)
 (global-set-key (kbd "C-<next>")     'scroll-other-window)
 (global-set-key (kbd "C-<prior>")    'scroll-other-window-down)
-(global-set-key (kbd "M-q")          'append-as-kill)
+(global-set-key (kbd "C-S-q")        'append-as-kill)
 (global-set-key (kbd "M-z")          'suspend-frame)
 (global-set-key (kbd "<mouse-3>")    'suspend-frame)
 (global-set-key (kbd "M-<right>")    'forward-word)
@@ -1005,31 +1127,27 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (global-set-key (kbd "C-S-s")        'search-with-baregrep);
 (global-set-key (kbd "C-S-d")        'duplicate-line);
 (global-set-key (kbd "C-c m")        'compile);
-(global-set-key (kbd "C-c c")        'compile);
+(global-set-key (kbd "C-c c")        'compile); 
 (global-set-key (kbd "C-c a")        'recompile);
 (global-set-key (kbd "M-C-f")        'projectile--find-file);
-(global-set-key (kbd "C-M-<up>")     'goto-previous-curly-brace-begin);
-(global-set-key (kbd "C-M-<down>")   'goto-next-curly-brace-end);
+;; (global-set-key (kbd "C-M-<up>")     'goto-previous-curly-brace-begin);
+;; (global-set-key (kbd "C-M-<down>")   'goto-next-curly-brace-end);
 (global-set-key (kbd "C-;")          'forward-word);
 (global-set-key (kbd "C-j")          'backward-word);
 (global-set-key (kbd "C-M-n")        'forward-paragraph);
 (global-set-key (kbd "C-M-p")        'backward-paragraph);
-;; (global-set-key (kbd "M-b")          'counsel-ibuffer)
-;; (global-set-key (kbd "M-B")          'ibuffer-other-window)
-;; (global-set-key (kbd "M-v")          'pop-to-mark-command)
 
-;;
-;; Multiple Cursor
-;;
-(global-set-key (kbd "C-S-c C-S-c")  'mc/edit-lines)
-(global-set-key (kbd "C-S-<down>")   'mc/mark-next-like-this);
-(global-set-key (kbd "C-S-<up>")     'mc/mark-previous-like-this);
-(global-set-key (kbd "C-M-S-<up>")   'mc/mark-next-like-this-symbol);
-(global-set-key (kbd "C-M-S-<down>") 'mc/mark-next-like-this-word);
-(global-set-key (kbd "C->")          'mc/mark-next-like-this);;
-(global-set-key (kbd "C-<")          'mc/mark-previous-like-this);
-(global-set-key (kbd "C-c C-<")      'mc/mark-all-like-this);
-(global-set-key (kbd "C-S-<mouse-1>") 'mc/add-cursor-on-click)
+(use-package multiple-cursors
+  :ensure t
+  :bind (("C-S-c C-S-c" . mc/edit-lines)
+         ("C-S-<down>" . mc/mark-next-like-this)
+         ("C-S-<up>" . mc/mark-previous-like-this)
+         ("C-M-S-<up>" . mc/mark-next-like-this-symbol)
+         ("C-M-S-<down>" . mc/mark-next-like-this-word)
+         ("C->" . mc/mark-next-like-this)
+         ("C-<" . mc/mark-previous-like-this)
+         ("C-c C-<" . mc/mark-all-like-this)
+         ("C-S-<mouse-1>" . mc/add-cursor-on-click)))
 
 ;; comint-mode keybindings
 (define-key comint-mode-map (kbd "M-<backspace>") 'comint-kill-input);;;
@@ -1037,7 +1155,7 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (define-key comint-mode-map (kbd "M-1") 'delete-window);
 (define-key comint-mode-map (kbd "C-<tab>") 'comint-dynamic-complete-filename);
 
-(setq load-file custom-file)
-(setq load-file misc-file)
+(load-file custom-file)
+(load-file misc-file) 
 
 (setq gc-cons-threshold (* 2 1000 1000))
