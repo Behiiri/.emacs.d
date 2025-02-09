@@ -113,12 +113,12 @@
 
 (use-package ivy
   :ensure t
+  :demand t
   :diminish
   :bind
   (("C-s" . swiper)
    ("C-c v" . ivy-push-view)
    ("C-c V" . ivy-pop-view)
-;;   ("M-SPC" . ivy-switch-view)
    ("C-c g" . counsel-git)
    ("C-c j" . counsel-git-grep)
    ("C-c L" . counsel-git-log)
@@ -138,12 +138,13 @@
 
 (use-package counsel
   :ensure t
-  :diminish
+  :demand t
+  :diminish  counsel-mode
   :bind
   ("C-x C-f" . counsel-find-file)
   :custom
   (counsel-find-file-ignore-regexp "\\(?:^[#.]\\)\\|\\(?:\\.\\(cs\\)?meta\\)")
-  :init
+  :config
   (counsel-mode 1))
 
 (use-package ivy-prescient
@@ -176,92 +177,62 @@
   (counsel-projectile-mode +1)
   (define-key projectile-mode-map (kbd "C-M-c") 'counsel-projectile-switch-to-buffer))
 
-
-;; (use-package perspective
-;;   :ensure t
-;;   :bind
-;;   ("C-x C-b" . persp-list-buffers)         ; or use a nicer switcher, see below
-;;   :custom
-;;   (persp-mode-prefix-key (kbd "C-c M-p"))  ; pick your own prefix key here
-;;   (setq perspective-initial-frame "Main")  ; Set the initial perspective name
-;;   (setq perspective-auto-save t)           ; Enable auto-saving of perspectives
-;;   :init
-;;   (persp-mode))
-
-(use-package eglot
+;; Org Bullets
+(use-package org-bullets
   :ensure t
-;  :hook (csharp-mode . eglot-ensure)
-;;  :bind
-;;  (("C-c r r" . eglot-rename)
-;;  ("C-c e f"  . eglot-format)
-;;  ("C-c e h"  . eglot-help-at-point)
-;;  ("C-<f12>"  . xref-find-definitions)
-;;  ("M-<f12>"  . xref-find-definitions-other-window)
-;;  ("C-c f"    . xref-find-definitions)
-;;  ("C-c F"    . xref-find-definitions-other-window)
-;;  ("S-<f12>"  . xref-find-references)
-;;  ("<f12>"    . xref-find-definitions))
-  :init
-  (setq eglot-ignored-server-capabilites
-        '(:hoverProvider :completionProvider
-                         :signatureHelpProvider :documentHighlightProvider
-                         :documentSymbolProvider :workspaceSymbolProvider
-                         :codeLensProvider :codeActionProvider 
-                         :documentFormattingProvider :documentRangeFormattingProvider
-                         :documentOnTypeFormattingProvider :documentLinkProvider
-                         :colorProvider :foldingRangeProvider
-                         :executeCommandProvider :inlayHintProvider))
-  :config  
-  (add-to-list 'eglot-server-programs `(csharp-mode . ("omnisharp" "-lsp")))
-  :custom
-  (eglot-connect-timeout 60))
+  :hook (org-mode . org-bullets-mode))
 
-;; Org-mode
+;; Org Mode
 (use-package org
-  :ensure org
-  :bind
-  (:map org-mode-map
-        ("C-<tab>" . org-cycle))
+  :ensure t
+  :demand t
+  :bind (:map org-mode-map
+              ("C-<tab>" . org-cycle))
+  :hook ((org-mode . org-indent-mode)) ;; Enable indentation
   :config
+  ;; Hide emphasis markers (bold/italic/etc.)
   (setq org-hide-emphasis-markers t)
-  (setq org-log-done 'time)
-  (setq org-return-follows-link  t)
+
+  ;; Log state changes
+  (setq org-log-done 'note
+        org-log-into-drawer t)
+
+  ;; Follow links with Enter
+  (setq org-return-follows-link t)
+
+  ;; Define custom TODO keywords and colors
   (setq org-todo-keywords
-        '((sequence "TODO(t)" "IN-PROGRESS(p)" "INSPECT(i)" "|" "DONE(d)" "VERIFY(v)" "FIXED(f)" "CANCELLED(c)" "DEFERRED(w)" "INVALID(n)")
-          ))
+        '((sequence "TODO(t!)" "IN-PROGRESS(p!)" "INSPECT(i!)" "|"
+                    "DONE(d!)" "VERIFY(v!)" "FIXED(f!)" "CANCELLED(c!)" "DEFERRED(w!)" "INVALID(n!)")))
   (setq org-todo-keyword-faces
-        '(
-          ("TODO"       . (:foreground "GoldenRod"  ))
-          ("INSPECT"    . (:foreground "SlateBlue"  ))
-          ("INPROGRESS" . (:foreground "DodgerBlue" ))
-          ("DONE"       . (:foreground "LimeGreen"  ))
-          ("FIXED"      . (:foreground "LimeGreen"  ))
-          ("VERIFY"     . (:foreground "DarkGreen"  ))
+        '(("TODO"       . (:foreground "GoldenRod"))
+          ("INSPECT"    . (:foreground "SlateBlue"))
+          ("IN-PROGRESS" . (:foreground "DodgerBlue"))
+          ("DONE"       . (:foreground "LimeGreen"))
+          ("FIXED"      . (:foreground "LimeGreen"))
+          ("VERIFY"     . (:foreground "DarkGreen"))
           ("DEFERRED"   . (:foreground "GreenYellow"))
-          ("CANCELLED"  . (:foreground "Red"        ))
-          ("INVALID"    . (:foreground "DarkRed"    ))
-          ))
-  
+          ("CANCELLED"  . (:foreground "Red"))
+          ("INVALID"    . (:foreground "DarkRed"))))
+
+  ;; Replace "-" with a bullet "•"
   (font-lock-add-keywords 'org-mode
                           '(("^ *\\([-]\\) "
                              (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
-  (use-package org-bullets
-    :config
-    (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
+
 
   (let* ((variable-tuple
-          (cond ((x-list-fonts "Liberation sans") '(:font "Liberation sans"))
+          (cond ((x-list-fonts "Liberation Sans") '(:font "Liberation Sans"))
                 ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
                 ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
                 ((x-list-fonts "Verdana")         '(:font "Verdana"))
                 ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
-                (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))))
-         (base-font-color     (face-foreground 'default nil 'default))
-         (headline           `(:inherit default :weight regular :foreground ,base-font-color)))
-    
+                (nil (warn "Cannot find a Sans Serif Font. Install Source Sans Pro."))))
+         (base-font-color (face-foreground 'default nil 'default))
+         (headline `(:inherit default :weight regular :foreground ,base-font-color)))
+
     (custom-theme-set-faces
      'user
-     ;; Set colors and heights for org-level faces
      `(org-level-1 ((t (,@headline ,@variable-tuple :foreground "#ffcc00" :height 1.75))))
      `(org-level-2 ((t (,@headline ,@variable-tuple :foreground "#66ff66" :height 1.5))))
      `(org-level-3 ((t (,@headline ,@variable-tuple :foreground "#00ccff" :height 1.25))))
@@ -270,8 +241,8 @@
      `(org-level-6 ((t (,@headline ,@variable-tuple :foreground "#cccccc"))))
      `(org-level-7 ((t (,@headline ,@variable-tuple :foreground "#ffccff"))))
      `(org-level-8 ((t (,@headline ,@variable-tuple))))
-     `(org-document-title ((t (,@headline ,@variable-tuple :height 2.0 :underline nil :foreground "#ffffff"))))
-     )
+     `(org-document-title ((t (,@headline ,@variable-tuple :height 2.0 :underline nil :foreground "#ffffff")))))
+
     (custom-theme-set-faces
      'user
      '(org-block ((t (:inherit fixed-pitch))))
@@ -285,10 +256,8 @@
      '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
      '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
      '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
-     '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
-    )
-
-    (add-hook 'org-mode-hook 'org-indent-mode))
+     '(org-verbatim ((t (:inherit (shadow fixed-pitch)))))))
+  (add-hook 'org-mode-hook 'org-indent-mode))
 
 (setq completion-ignored-extensions
       (append completion-ignored-extensions
@@ -675,8 +644,6 @@ ALIST is the option channel for display actions (see `display-buffer')."
   ;; No hungry backspace
   (c-toggle-auto-hungry-state -1)
 
-  ;; Newline indents, semi-colon doesn't
-  (define-key c++-mode-map "\C-m" 'newline-and-indent)
   (setq c-hanging-semi&comma-criteria '((lambda () 'stop)))
 
   ;; Abbrevation expansion
@@ -685,9 +652,8 @@ ALIST is the option channel for display actions (see `display-buffer')."
   ;; global line highlighitng
   (global-hl-line-mode 1)
 
-  (electric-pair-local-mode 1)
+  (electric-pair-mode 1)
 
-  
   (defun open-corresponding-file ()
     "Open the corresponding header/source file for C/C++."
     (interactive)
@@ -709,7 +675,7 @@ ALIST is the option channel for display actions (see `display-buffer')."
     (find-file-other-window buffer-file-name)
     (open-corresponding-file)
     (other-window))
-  
+
 
   (define-key c-mode-map [f12] 'open-corresponding-file)
   (define-key c-mode-map [M-f12] 'open-corresponding-file-other-window)
@@ -1126,9 +1092,7 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (global-set-key (kbd "C-c l")        'global-display-line-numbers-mode);;;;;;
 (global-set-key (kbd "C-S-s")        'search-with-baregrep);
 (global-set-key (kbd "C-S-d")        'duplicate-line);
-(global-set-key (kbd "C-c m")        'compile);
 (global-set-key (kbd "C-c c")        'compile); 
-(global-set-key (kbd "C-c a")        'recompile);
 (global-set-key (kbd "M-C-f")        'projectile--find-file);
 ;; (global-set-key (kbd "C-M-<up>")     'goto-previous-curly-brace-begin);
 ;; (global-set-key (kbd "C-M-<down>")   'goto-next-curly-brace-end);

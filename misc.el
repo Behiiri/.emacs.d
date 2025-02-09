@@ -281,3 +281,22 @@
   (insert "    printf(\"Hello, world!\\n\");\n")
   (insert "    return 0;\n")
   (insert "}\n"))
+
+;; auto delete obj files on cpp and hpp file save
+(defun delete-obj-on-save ()
+  "Delete the corresponding .obj file in the bin directory on save."
+  (when (and (buffer-file-name)
+             (string-match "\\.\\(cpp\\|hpp\\)\\'" (buffer-file-name)))
+    (let* ((src-file (buffer-file-name))
+           (base-name (file-name-base src-file))
+           (src-dir (file-name-directory src-file))
+           ;; Navigate from src to project root, then to bin
+           (project-dir (file-name-directory (directory-file-name src-dir)))
+           (obj-dir (expand-file-name "bin/" project-dir))
+           (obj-file (expand-file-name (concat base-name ".obj") obj-dir)))
+      (when (file-exists-p obj-file)
+        (delete-file obj-file)
+        (message "Deleted %s" obj-file))))
+  )
+
+(add-hook 'after-save-hook #'delete-obj-on-save)
