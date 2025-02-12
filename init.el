@@ -1060,46 +1060,46 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (global-set-key (kbd "<f9>")         'first-error)
 (global-set-key (kbd "<f10>")        'previous-error)
 (global-set-key (kbd "<f11>")        'next-error)
-(global-set-key (kbd "C-0")          'delete-window);
-(global-set-key (kbd "C-1")          'delete-other-windows);
-(global-set-key (kbd "C-2")          'split-window-below);
-(global-set-key (kbd "C-3")          'split-window-right);
-(global-set-key (kbd "C-4")          'next-error);
-(global-set-key (kbd "C-<f11>")      'toggle-frame-fullscreen);
-(global-set-key (kbd "<insert>")     'yank);
-(global-set-key (kbd "S-<insert>")   'counsel-yank-pop);
-(global-set-key (kbd "C-<insert>")   'overwrite-mode);
-(global-set-key (kbd "C-=")          'enlarge-window-horizontally);
-(global-set-key (kbd "C--")          'shrink-window-horizontally);
-(global-set-key (kbd "C-<f5>")       'behiri-cycle-background-color);
-(global-set-key (kbd "C-<f6>")       'behiri-cycle-foreground-color);
-(global-set-key (kbd "C-c s")        'grep);
-(global-set-key (kbd "C-c S")        'counsel-grep);
-(global-set-key (kbd "C-c C-c")      'comment-or-uncomment-region);
-(global-set-key (kbd "M-p")          'project-find-file);
-(global-set-key (kbd "M-P")          'behiri-project-find-file-in-other-window);
-(global-set-key (kbd "C-v")          'forward-char);
-(global-set-key (kbd "C-c i s")      'insert-signature);
-(global-set-key (kbd "C-c i t")      'insert-timestamp);
-(global-set-key (kbd "C-c i d")      'insert-timeofday);
-(global-set-key (kbd "C-c M-p")      'behiri-copy-file-path);
-(global-set-key (kbd "C-x F")        'display-fill-column-indicator-mode);
-(global-set-key (kbd "M-1")          'Behiri-shell);
-(global-set-key (kbd "M-3")          'shell-command);
-(global-set-key (kbd "`")            'Behiri-shell);
-(global-set-key (kbd "C-,")          'beginning-of-buffer);
-(global-set-key (kbd "C-.")          'end-of-buffer);
-(global-set-key (kbd "C-c l")        'global-display-line-numbers-mode);;;;;;
-(global-set-key (kbd "C-S-s")        'search-with-baregrep);
-(global-set-key (kbd "C-S-d")        'duplicate-line);
-(global-set-key (kbd "C-c c")        'compile); 
-(global-set-key (kbd "M-C-f")        'projectile--find-file);
-;; (global-set-key (kbd "C-M-<up>")     'goto-previous-curly-brace-begin);
-;; (global-set-key (kbd "C-M-<down>")   'goto-next-curly-brace-end);
-(global-set-key (kbd "C-;")          'forward-word);
-(global-set-key (kbd "C-j")          'backward-word);
-(global-set-key (kbd "C-M-n")        'forward-paragraph);
-(global-set-key (kbd "C-M-p")        'backward-paragraph);
+(global-set-key (kbd "C-0")          'delete-window)
+(global-set-key (kbd "C-1")          'delete-other-windows)
+(global-set-key (kbd "C-2")          'split-window-below)
+(global-set-key (kbd "C-3")          'split-window-right)
+(global-set-key (kbd "C-4")          'next-error)
+(global-set-key (kbd "C-<f11>")      'toggle-frame-fullscreen)
+(global-set-key (kbd "<insert>")     'yank)
+(global-set-key (kbd "S-<insert>")   'counsel-yank-pop)
+(global-set-key (kbd "C-<insert>")   'overwrite-mode)
+(global-set-key (kbd "C-=")          'enlarge-window-horizontally)
+(global-set-key (kbd "C--")          'shrink-window-horizontally)
+(global-set-key (kbd "C-<f5>")       'behiri-cycle-background-color)
+(global-set-key (kbd "C-<f6>")       'behiri-cycle-foreground-color)
+(global-set-key (kbd "C-c s")        'grep)
+(global-set-key (kbd "C-c S")        'counsel-grep)
+(global-set-key (kbd "C-c C-c")      'comment-or-uncomment-region)
+(global-set-key (kbd "M-p")          'project-find-file)
+(global-set-key (kbd "M-P")          'behiri-project-find-file-in-other-window)
+(global-set-key (kbd "C-v")          'forward-char)
+(global-set-key (kbd "C-c i s")      'insert-signature)
+(global-set-key (kbd "C-c i t")      'insert-timestamp)
+(global-set-key (kbd "C-c i d")      'insert-timeofday)
+(global-set-key (kbd "C-c M-p")      'behiri-copy-file-path)
+(global-set-key (kbd "C-x F")        'display-fill-column-indicator-mode)
+(global-set-key (kbd "M-1")          'Behiri-shell)
+(global-set-key (kbd "M-3")          'shell-command)
+(global-set-key (kbd "`")            'Behiri-shell)
+(global-set-key (kbd "C-,")          'beginning-of-buffer)
+(global-set-key (kbd "C-.")          'end-of-buffer)
+(global-set-key (kbd "C-c l")        'global-display-line-numbers-mode)
+(global-set-key (kbd "C-S-s")        'search-with-baregrep)
+(global-set-key (kbd "C-S-d")        'duplicate-line)
+(global-set-key (kbd "C-c c")        'compile)
+(global-set-key (kbd "M-C-f")        'projectile--find-file)
+;; (global-set-key (kbd "C-M-<up>")     'goto-previous-curly-brace-begin)
+;; (global-set-key (kbd "C-M-<down>")   'goto-next-curly-brace-end)
+(global-set-key (kbd "C-;")          'forward-word)
+(global-set-key (kbd "C-j")          'backward-word)
+(global-set-key (kbd "C-M-n")        'forward-paragraph)
+(global-set-key (kbd "C-M-p")        'backward-paragraph)
 
 (use-package multiple-cursors
   :ensure t

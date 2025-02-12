@@ -134,8 +134,8 @@
   "Insert defualt C++ source format"
   (interactive)
   (let* ((file-name (file-name-nondirectory (buffer-file-name)))
-         (class-name (file-name-sans-extension file-name))
-         (class-name (capitalize (downcase class-name)))
+         (file-name-noex (downcase (file-name-sans-extension file-name)))
+         (class-name (capitalize file-name-noex))
          (current-date (format-time-string "%Y-%m-%d")))
     (insert "/* ========================================================================\n")
     (insert (format "   $File: %s$\n" file-name))
@@ -144,13 +144,13 @@
     (insert "   $Author: Behiri$\n")
     (insert "   $Notice: (C) Copyright 2025 by Behiri! All Rights Reserved.$\n")
     (insert "   ======================================================================== */\n\n")
+    (insert (format "#include \"%s.hpp\" \n\n" file-name-noex))
     (insert (format "%s::%s()  { clear(); }\n" class-name class-name))
+    (insert (format "void %s::destroy() {}" class-name)
     (insert (format "%s::~%s() { destroy(); }\n\n" class-name class-name))
     (insert (format "void %s::clear() {}\n" class-name))
     (insert (format "bool %s::create() { return true; }\n" class-name))
-    (insert (format "void %s::update() {}\n" class-name))
-    (insert (format "void %s::destroy()\n" class-name))
-    (insert (format "{\n    clear();\n}" class-name))
+    (insert (format "void %s::update() {}\n" class-name)))
     ))
 
 (defun behiri-cs-file-format ()
@@ -286,7 +286,7 @@
 (defun delete-obj-on-save ()
   "Delete the corresponding .obj file in the bin directory on save."
   (when (and (buffer-file-name)
-             (string-match "\\.\\(cpp\\|hpp\\)\\'" (buffer-file-name)))
+             (string-match "\\.\\(cpp\\|hpp\\|h\\|c\\)\\'" (buffer-file-name)))
     (let* ((src-file (buffer-file-name))
            (base-name (file-name-base src-file))
            (src-dir (file-name-directory src-file))
@@ -300,3 +300,92 @@
   )
 
 (add-hook 'after-save-hook #'delete-obj-on-save)
+
+;; Optional: ensure cl-lib is available (for cl-some)
+(require 'cl-lib)
+
+(defvar beam-camel-skip-prefixes '("b2" "SDL_" "imgui" ".")
+  "List of identifier prefixes that should not be transformed from CamelCase to snake_case.")
+
+(defun beam-convert-camel-to-snake (s)
+  "Convert CamelCase string S to snake_case.
+If S begins with an uppercase letter, preserve its letter cases
+(inserting underscores between a lowercase letter/digit and an uppercase letter).
+If S begins with a lowercase letter, then the entire output is lower-case.
+If S starts with one of the prefixes defined in `beam-camel-skip-prefixes',
+S is returned unchanged."
+  (if (cl-some (lambda (prefix) (string-prefix-p prefix s))
+               beam-camel-skip-prefixes)
+      s
+    (let* ((is-type (and (> (length s) 0)
+                         (let ((c (aref s 0)))
+                           (and (>= c ?A) (<= c ?Z)))))
+           ;; Ensure the regexp is case-sensitive.
+           (case-fold-search nil)
+           (converted (replace-regexp-in-string
+                       "\\([a-z0-9]\\)\\([A-Z]\\)" "\\1_\\2" s)))
+      (if is-type converted (downcase converted)))))
+
+(defun beam-camel-to-snake-region (beg end)
+  "Convert all CamelCase identifiers in the selected region to snake_case.
+For each identifier:
+- If it begins with an uppercase letter, its letter case is preserved
+  (e.g. \"PhysicsSystem\" becomes \"Physics_System\").
+- If it begins with a lowercase letter, the result is fully lower-cased
+  (e.g. \"segmentLength\" becomes \"segment_length\").
+Identifiers starting with any prefix in `beam-camel-skip-prefixes'
+are left unchanged."
+  (interactive "r")
+  (save-excursion
+    (save-restriction
+      ;; Limit processing to the active region.
+      (narrow-to-region beg end)
+      (goto-char (point-min))
+      ;; Match identifiers: letters, digits, and underscores.
+      (while (re-search-forward "\\b\\([A-Za-z_][A-Za-z0-9_]*\\)\\b" nil t)
+        (let* ((match (match-string 0))
+               (converted (beam-convert-camel-to-snake match)))
+          (when (not (string= match converted))
+            (replace-match converted t t)))))))
+
+(global-set-key (kbd "C-c r s")      'beam-camel-to-snake-region)
+
+(defun beam-args-to-init-region (beg end)
+  "Convert a comma-separated parameter list in the region into assignments.
+For example, if the region contains:
+    Chain *parent, vec position, vec size, float angle
+this command will call `next-line` twice, then move to the beginning of the current line
+and insert the following code there:
+    this->parent = parent;
+    this->position = position;
+    this->size = size;
+    this->angle = angle
+The original region remains unchanged."
+  (interactive "r")
+  (let ((txt (buffer-substring-no-properties beg end))
+        assignments)
+    ;; Split the region on commas and process each parameter.
+    (dolist (param (split-string txt ","))
+      (let* ((trim (string-trim param))
+             ;; Split on whitespace. For "Chain *parent" you get '("Chain" "*parent")
+             (parts (split-string trim "[ \t]+"))
+             (last (car (last parts)))
+             ;; Remove any leading '*' from the variable name.
+             (var (if (string-prefix-p "*" last)
+                      (substring last 1)
+                    last)))
+        (push (format "    this->%s = %s;" var var) assignments)))
+    ;; Reverse the list so that assignments remain in the original order.
+    (setq assignments (reverse assignments))
+    ;; Save the point so that the region remains unchanged.
+    (save-excursion
+      ;;(goto-char end)
+      ;;(end-of-line)
+      ;; Move two lines down.
+      (next-line 1)
+      (next-line 1)
+      (beginning-of-line)
+      ;; Insert the generated assignments.
+      (insert (mapconcat 'identity assignments "\n") "\n\n"))))
+
+(global-set-key (kbd "C-c r a")      'beam-args-to-init-region)
