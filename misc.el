@@ -382,10 +382,158 @@ The original region remains unchanged."
       ;;(goto-char end)
       ;;(end-of-line)
       ;; Move two lines down.
-      (next-line 1)
-      (next-line 1)
+      (forward-line 1)
+      (forward-line 1)
       (beginning-of-line)
       ;; Insert the generated assignments.
-      (insert (mapconcat 'identity assignments "\n") "\n\n"))))
+      (insert (mapconcat 'identity assignments "\n") "\n\n")
+      (indent-for-tab-command))))
 
 (global-set-key (kbd "C-c r a")      'beam-args-to-init-region)
+
+;; Define a variable to track the toggle state.
+(defvar my-custom-faces-active nil
+  "Non-nil when custom faces are active.")
+
+(defun toggle-my-custom-faces ()
+  "Toggle custom colors for several font-lock faces."
+  (interactive)
+  (if my-custom-faces-active
+      ;; Revert custom faces.
+      (progn
+        (custom-set-faces
+         '(font-lock-type-face ((t (:inherit default :foreground nil))))
+         '(font-lock-keyword-face ((t (:inherit default :foreground nil))))
+         '(font-lock-variable-name-face ((t (:inherit default :foreground nil))))
+         '(font-lock-constant-face ((t (:inherit default :foreground nil)))))
+        (setq my-custom-faces-active nil)
+        (message "Custom faces reverted."))
+    ;; Apply custom faces.
+    (custom-set-faces
+     '(font-lock-type-face ((t (:inherit default :foreground "SeaGreen1"))))
+     '(font-lock-keyword-face ((t (:inherit default :foreground "gold"))))
+     '(font-lock-variable-name-face ((t (:inherit default :foreground "burlywood2"))))
+     '(font-lock-constant-face ((t (:inherit default :foreground "tomato")))))
+    (setq my-custom-faces-active t)
+    (message "Custom faces applied.")))
+
+(global-set-key (kbd "C-c <f6>")      'toggle-my-custom-faces)
+
+(defun my-move-to-end-and-newline ()
+  "Move point to the end of the current line and insert a new line with proper indentation."
+  (interactive)
+  (end-of-line)
+  (newline-and-indent))
+
+(global-set-key (kbd "M-<return>") 'my-move-to-end-and-newline)
+
+(defun my-insert-line-above ()
+  "Insert a new line above the current line and indent it properly."
+  (interactive)
+  (beginning-of-line)
+  (newline-and-indent)
+  (forward-line -1) ;(previous-line)
+  (indent-according-to-mode))
+
+(global-set-key (kbd "C-<return>") 'my-insert-line-above)
+
+(defun my-query-replace-region ()
+  "Perform a query-replace in the entire buffer.
+The string to be replaced is taken from the currently active region.
+Prompts for a replacement string."
+  (interactive)
+  (if (use-region-p)
+      (let ((from (buffer-substring-no-properties (region-beginning) (region-end))))
+        ;; Deactivate the mark.
+        (deactivate-mark)
+        ;; Read the replacement string from the minibuffer.
+        (let ((to (read-string (format "Replace '%s' with: " from))))
+          ;; Do the query replace across the whole buffer.
+          (query-replace from to nil (point-min) (point-max))))
+    (message "No region selected.")))
+
+;; Bind the function to M-O.
+(global-set-key (kbd "M-O") 'my-query-replace-region)
+
+;; 
+;; (defvar my--last-line nil "Last line number tracked.")
+;; 
+;; (defun my-recenter-maybe ()
+;;   (let ((current-line (line-number-at-pos)))
+;;     (when (and my--last-line
+;;                (> (abs (- current-line my--last-line))
+;;                   (/ (window-body-height) 2)))
+;;       (recenter))
+;;     (setq my--last-line current-line)))
+;; 
+;; (add-hook 'post-command-hook #'my-recenter-maybe)
+;; 
+;; (defun my-recenter-advice (&rest _)
+;;   (recenter))
+;; 
+;; (advice-add 'swiper    :after #'my-recenter-advice)
+;; (advice-add 'goto-line :after #'my-recenter-advice)
+;; ;; Add more commands as needed
+;;
+
+(defvar my--last-line nil "Last line number tracked.")
+
+(defun my-recenter-maybe ()
+  (let ((current-line (line-number-at-pos))
+        (when (and my--last-line
+                   (> (abs (- current-line my--last-line))
+                      (/ (window-body-height) 2)))
+          (let* ((window-start (window-start))
+                 (window-end (window-end))
+                 (top-threshold (+ window-start 0)) ;; Top 3 lines
+                 (bottom-threshold (- window-end 1)) ;; Bottom 3 lines
+                 (cursor-pos (point)))
+            ;; Check if cursor is in the top 3 lines
+            (when (<= cursor-pos top-threshold)
+              (recenter))
+            ;; Check if cursor is in the bottom 3 lines and there is text below
+            (when (and (>= cursor-pos bottom-threshold)
+                       (save-excursion
+                         (goto-char window-end)
+                         (unless (looking-at-p "^\\s-*$") ;; Don't recenter if only empty lines
+                           (recenter))))))
+          (setq my--last-line current-line)))
+
+    (add-hook 'post-command-hook #'my-recenter-maybe)))
+
+(defun my-recenter-advice (&rest _)
+  (recenter))
+
+(advice-add 'swiper       :after #'my-recenter-advice)
+(advice-add 'goto-line    :after #'my-recenter-advice)
+;; (advice-add 'other-window :after #'my-recenter-advice)
+
+;; Add a custom regex to recognize 'file(line): info: breakpoint hit'
+(add-to-list 'compilation-error-regexp-alist 'breakpoint-info)
+(add-to-list 'compilation-error-regexp-alist-alist
+             '(breakpoint-info "^\\(.*\\)(\\([0-9]+\\)): info: breakpoint hit$" 1 2 nil 0))
+
+(defface my-log-face
+  '((t :foreground "#FF88FF"))
+  "Face for 'log:' messages in compilation mode.")
+
+(add-hook 'compilation-mode-hook
+          (lambda ()
+            (font-lock-add-keywords
+             nil
+             '(("\\blog: .*\\b" . 'my-log-face)))))
+(put 'upcase-region 'disabled nil)
+
+;; SDL3 docs shortcut
+(defun open-sdl-wiki ()
+  "Concatenate the SDL_KeyboardEvent wiki URL with content of the active region,
+or prompt for a string if no region is selected, and open the result in the browser."
+  (interactive)
+  (let* ((base-url "https://wiki.libsdl.org/SDL3/")
+         (append-string (if (use-region-p)
+                            (buffer-substring-no-properties (region-beginning) (region-end))
+                          (read-string "Enter string to append: "))))
+    (browse-url (concat base-url append-string))))
+
+(global-set-key (kbd "C-C w")     'open-sdl-wiki)
+

@@ -662,6 +662,8 @@ ALIST is the option channel for display actions (see `display-buffer')."
             (cond
              ((string-match "\\.cpp" buffer-file-name) (concat base-file-name ".hpp"))
              ((string-match "\\.hpp" buffer-file-name) (concat base-file-name ".cpp"))
+             ((string-match "\\.h" buffer-file-name) (concat base-file-name ".cc"))
+             ((string-match "\\.cc" buffer-file-name) (concat base-file-name ".h"))
              ((string-match "\\.c" buffer-file-name) (concat base-file-name ".h"))
              ((string-match "\\.h" buffer-file-name) (concat base-file-name ".c"))
              (t nil))))
@@ -793,7 +795,6 @@ ALIST is the option channel for display actions (see `display-buffer')."
 ;; Command ;;  *.c *.h *.cpp *.hpp *.cs
 (set-variable 'grep-command "findstr -s -n -i -l -C:\"\" *.*")
 (set-variable 'grep-command-position 25)
-(setq counsel-grep-base-command  "findstr -s -n -i -l -C:\"\" *.*")
 
 ;; Smooth scroll
 (setq scroll-step 1) ;; 3
@@ -1074,8 +1075,7 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (global-set-key (kbd "C-<f5>")       'behiri-cycle-background-color)
 (global-set-key (kbd "C-<f6>")       'behiri-cycle-foreground-color)
 (global-set-key (kbd "C-c s")        'grep)
-(global-set-key (kbd "C-c S")        'counsel-grep)
-(global-set-key (kbd "C-c C-c")      'comment-or-uncomment-region)
+(global-set-key (kbd "C-c c")        'comment-or-uncomment-region)
 (global-set-key (kbd "M-p")          'project-find-file)
 (global-set-key (kbd "M-P")          'behiri-project-find-file-in-other-window)
 (global-set-key (kbd "C-v")          'forward-char)
@@ -1094,8 +1094,6 @@ ALIST is the option channel for display actions (see `display-buffer')."
 (global-set-key (kbd "C-S-d")        'duplicate-line)
 (global-set-key (kbd "C-c c")        'compile)
 (global-set-key (kbd "M-C-f")        'projectile--find-file)
-;; (global-set-key (kbd "C-M-<up>")     'goto-previous-curly-brace-begin)
-;; (global-set-key (kbd "C-M-<down>")   'goto-next-curly-brace-end)
 (global-set-key (kbd "C-;")          'forward-word)
 (global-set-key (kbd "C-j")          'backward-word)
 (global-set-key (kbd "C-M-n")        'forward-paragraph)
