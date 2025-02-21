@@ -537,3 +537,32 @@ or prompt for a string if no region is selected, and open the result in the brow
 
 (global-set-key (kbd "C-C w")     'open-sdl-wiki)
 
+
+(defun lock-window ()
+  "Mark the current window so that commands like `other-window` will skip it."
+  (interactive)
+  (set-window-parameter (selected-window) 'no-other-window t)
+  (message "Current window is now locked."))
+
+(defun unlock-window ()
+  "Remove the non-targetable flag from the current window.
+   Commands like `other-window` will now consider this window again."
+  (interactive)
+  (set-window-parameter (selected-window) 'no-other-window nil)
+  (message "Current window is now unlocked."))
+
+(defun toggle-window-lock ()
+  "Toggle whether the current window is targetable.
+   If the current window has the 'no-other-window parameter non-nil,
+   set it to nil so that window commands like `other-window` consider it;
+   otherwise, set the parameter to t."
+  (interactive)
+  (let ((win (selected-window)))
+    (if (window-parameter win 'no-other-window)
+        (progn
+          (set-window-parameter win 'no-other-window nil)
+          (message "Current window is now unlocked."))
+      (set-window-parameter win 'no-other-window t)
+      (message "Current window is now locked."))))
+
+(global-set-key (kbd "C-c L") 'toggle-window-lock)
